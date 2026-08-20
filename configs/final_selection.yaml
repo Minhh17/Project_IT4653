@@ -1,0 +1,11 @@
+# Fill and COMMIT this file after validation comparison, before any test access.
+frozen: false
+experiment_id: null
+semantic_fingerprint: null
+protocol_version: null
+training_git_commit: null
+seeds: [42, 2026]
+selection_metric: best_val_accuracy_mean
+selected_at: null
+selected_by: []
+notes: ""

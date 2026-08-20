@@ -1,0 +1,24 @@
+# Datasets and generated experiment artifacts are not source code.
+data/*
+!data/.gitkeep
+runs/*
+!runs/.gitkeep
+results/*
+!results/.gitkeep
+# Generated files stay ignored while experiments run, keeping git_status clean.
+# Force-add only the reviewed small CSV/JSON logs and final report figures.
+
+# Python/editor artifacts
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.venv/
+.idea/
+.vscode/
+
+# Large model files
+*.pt
+*.pth
+*.ckpt

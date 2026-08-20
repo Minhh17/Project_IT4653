@@ -1,0 +1,74 @@
+# This is a PROVISIONAL engineering baseline, not a scientific conclusion.
+# Freeze the choices in docs/EXPERIMENT_PROTOCOL.md after the pilot runs.
+experiment:
+  id: dev_baseline
+  label: "Development baseline"
+  attempt: null            # e.g. retry1; preserves failed logs under a new folder
+  comparison_groups: [development]
+  protocol_version: "draft-v1"
+  output_dir: runs
+
+data:
+  dataset: cifar10          # cifar10 | cifar100 | fake
+  # On Kaggle, auto finds exactly one attached cifar-10-batches-py folder.
+  root: auto
+  download: false           # attached Kaggle inputs are read-only; never download there
+  image_size: 32
+  train_size: 45000
+  val_size: 5000
+  split_seed: 4653         # fixed across ALL official runs
+  batch_size: 128
+  num_workers: 2
+  augmentation: false
+  crop_padding: 4
+  horizontal_flip_probability: 0.5
+  color_jitter: 0.1
+  fake_train_size: 128     # used only when dataset=fake
+  fake_val_size: 64
+
+model:
+  name: resnet18_cifar
+  base_channels: 64        # use 8 in a quick CPU smoke test
+  normalization: batch     # batch | layer | group
+  group_norm_groups: 8
+  dropout: 0.0             # fixed after global average pooling
+
+optimizer:
+  name: sgd_momentum       # sgd | sgd_momentum | nesterov | rmsprop | adam | adamw
+  lr: 0.1
+  momentum: 0.9
+  weight_decay: 0.0005      # only Conv/Linear weights; not bias/norm affine params
+  rmsprop_alpha: 0.99
+  adam_betas: [0.9, 0.999]
+  eps: 0.00000001
+
+scheduler:
+  name: constant           # constant | step | cosine
+  warmup_epochs: 0
+  warmup_start_factor: 0.1
+  step_size_epochs: 7
+  gamma: 0.1
+  min_lr: 0.00001
+
+regularization:
+  label_smoothing: 0.0     # extension; keep 0 for required experiments
+  early_stopping:
+    enabled: false
+    monitor: val_loss      # val_loss | val_accuracy
+    patience: 4
+    min_delta: 0.0
+
+train:
+  epochs: 20
+  seed: 42
+  device: auto             # auto | cpu | cuda
+  deterministic: true
+  amp: true                # active only on CUDA
+  log_every_steps: 1       # needed for loss-vs-step plots
+  convergence_accuracy: 0.70
+
+debug:
+  max_train_batches: null
+  max_val_batches: null
+  train_samples: null
+  use_train_as_val: false
