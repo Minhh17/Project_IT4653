@@ -1,10 +1,8 @@
-# A known-compatible PyTorch/torchvision pair. Kaggle often has these packages
-# preinstalled; record the actual versions of every official run in environment.json.
-torch==2.4.1
-torchvision==0.19.1
-PyYAML==6.0.2
-numpy==1.24.4
-pandas==2.0.3
-matplotlib==3.7.5
-seaborn==0.13.2
-tqdm==4.67.1
+# Kaggle đã cài sẵn các thư viện này, nên không cần pip install khi chạy notebook.
+# Trước khi nộp: thay mỗi dòng bằng package==phiên_bản được in ở cell đầu
+# của Kaggle session đã tạo ra kết quả chính.
+torch
+torchvision
+numpy
+pandas
+matplotlib

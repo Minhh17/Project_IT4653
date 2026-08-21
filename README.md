@@ -1,151 +1,239 @@
-# IT4653 — Đề tài 3: khảo sát kỹ thuật huấn luyện
+# IT4653 - Đề tài 3 - Kaggle-first
 
-Đây là base code PyTorch thuần cho khảo sát có kiểm soát trên ResNet-18/CIFAR-10. Thiết kế ưu tiên hai mục tiêu: **mỗi run có thể truy vết** và **cả ba thành viên giải thích được mọi dòng code khi bảo vệ**.
+Nhóm khảo sát các kỹ thuật tối ưu hóa khi huấn luyện một ResNet-18 nhỏ trên CIFAR-10. Toàn bộ phần chạy được đặt trong **một notebook Kaggle** để ba thành viên có thể đọc theo từng cell, sửa và thấy kết quả ngay trên GPU Kaggle.
 
-**Chạy lần đầu trên Kaggle:** đọc duy nhất [KAGGLE_START_HERE.md](docs/KAGGLE_START_HERE.md). Base config tự tìm CIFAR-10 đã gắn bằng Add Input; không tải dataset từ code.
+Repository cố ý không có package Python, YAML, script runner hay thư mục unit test. Những phần đó không được yêu cầu trong đề bài và không cần thiết cho cách làm của nhóm.
 
-> Trạng thái hiện tại: `draft-v1`. Các learning rate và cấu hình đối chứng là giá trị pilot đề xuất, chưa phải kết luận. Không chạy toàn bộ GPU queue trước khi hoàn tất checklist trong [EXPERIMENT_PROTOCOL.md](docs/EXPERIMENT_PROTOCOL.md).
+## Yêu cầu mã nguồn trong đề bài
 
-## Phạm vi đã dựng
+Đề bài yêu cầu: GitHub **hoặc** file `.zip`, kèm README, `requirements.txt`, và một notebook/script tái lập kết quả chính. Với project này, từng ý được đáp ứng như sau:
 
-- ResNet-18 cho ảnh 32×32: stem 3×3, stride 1, không max-pool.
-- CIFAR-10 mặc định; split cố định 45.000 train / 5.000 validation; test bị tách khỏi train command.
-- Sáu optimizer, ba scheduler có/không warm-up, ba normalization × ba batch size, chín cấu hình regularization.
-- Hai seed `42`, `2026`; log theo step và epoch; best checkpoint theo validation accuracy.
-- Queue riêng cho ba thành viên, tổng **27 cấu hình duy nhất / 54 seeded runs** sau khi dùng chung một anchor.
-- Script tổng hợp mean ± sample standard deviation, audit log và tám biểu đồ.
-- Fake-data smoke test, overfit-128 test, LR range test và cổng xác nhận trước khi đọc test set.
+| Yêu cầu | Nhóm sẽ nộp | Ý nghĩa thực tế |
+|---|---|---|
+| Repository GitHub hoặc `.zip` | Link GitHub; tạo thêm `.zip` dự phòng trước hạn nộp | Đây chỉ là hai cách giao cùng một thư mục mã nguồn, không phải hai sản phẩm khác nhau. |
+| README cài đặt và chạy lại | File này | “Cài đặt” trên Kaggle là import notebook, bật GPU và Add Input CIFAR-10. Không bắt buộc cài local. |
+| `requirements.txt` | Danh sách thư viện notebook dùng | Kaggle đã cài sẵn; trước khi nộp, nhóm ghi đúng phiên bản được in ở cell đầu. |
+| Notebook/script tái lập kết quả chính | `notebooks/DeTai3_Kaggle.ipynb` | Notebook tự đọc dữ liệu, tạo split, dựng model, train hai seed, ghi CSV, ghép mean ± std và vẽ hình. |
+| Nhật ký thí nghiệm | Các CSV trong `results/raw/` | Mỗi lượt chạy có thời gian, cấu hình, seed và kết quả; số trong báo cáo phải lấy từ đây. |
 
-Chi tiết vì sao Kickoff ghi 52 nhưng danh sách chi tiết dẫn tới 54 runs nằm trong [IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md).
+“Tái lập kết quả chính” không có nghĩa là thầy phải bấm một nút và chờ chạy lại cả 52 lượt trong một phiên Kaggle. Nó có nghĩa là repository chứa đủ code, cấu hình, seed, dữ liệu đầu vào và hướng dẫn để:
 
-## Cài đặt
+1. chạy nhanh một pilot để kiểm tra toàn bộ luồng;
+2. chạy lại một hay nhiều cấu hình chính với hai seed;
+3. nếu có đủ thời gian GPU, chạy lại toàn bộ ma trận;
+4. từ các CSV gốc, tạo lại bảng mean ± std và ít nhất sáu biểu đồ trong báo cáo.
 
-Python 3.8+:
+Hướng dẫn tái lập từng bước nằm ở [docs/REPRODUCE_RESULTS.md](docs/REPRODUCE_RESULTS.md). Khi học code để bảo vệ, đọc thêm [docs/CODE_WALKTHROUGH_SIMPLE.md](docs/CODE_WALKTHROUGH_SIMPLE.md) song song với notebook.
 
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install --upgrade pip
-python -m pip install -e .
-```
+## Cấu trúc repository
 
-Trên Kaggle, PyTorch thường đã có sẵn. Notebook mẫu kiểm tra phiên bản trước, sau đó cài project bằng `--no-deps` để không âm thầm thay CUDA/PyTorch giữa các máy. Dùng Add Input với bản CIFAR Python đã giải nén; `data.root: auto` tìm thư mục đó dưới `/kaggle/input`. Mọi official run phải có cùng phiên bản; phiên bản thực tế tự được ghi trong `environment.json`.
-
-## Kiểm tra ngày đầu
-
-Chạy lần lượt:
-
-```bash
-python scripts/check_configs.py
-python -m unittest discover -s tests -v
-python scripts/smoke_test.py
-python scripts/overfit_128.py
-```
-
-`smoke_test.py` dùng tensor giả, CPU, một epoch và đi trọn pipeline. `overfit_128.py` dùng CIFAR-10 đã attach trên Kaggle và phải ghi nhớ được ít nhất 90% trên 128 ảnh; đây là kiểm tra lỗi code, không phải kết quả báo cáo.
-
-Pilot một epoch thật:
-
-```bash
-python scripts/train.py \
-  --config configs/base.yaml \
-  --set experiment.id=pilot_one_epoch \
-  --set experiment.label="Pilot one epoch" \
-  --set train.epochs=1 \
-  --set scheduler.warmup_epochs=0
-```
-
-Một run tạo ra:
+Trong giai đoạn phát triển:
 
 ```text
-runs/<experiment_id>/seed_<seed>[_<attempt>]/
-├── config.resolved.yaml
-├── environment.json
-├── status.json
-├── metrics_step.csv
-├── metrics_epoch.csv
-├── summary.json
-└── checkpoints/best.pt
+README.md
+TEAM_PLAN.md
+requirements.txt
+notebooks/DeTai3_Kaggle.ipynb
+docs/REPRODUCE_RESULTS.md
+docs/CODE_WALKTHROUGH_SIMPLE.md
+docs/AI_USAGE_DECLARATION.md
+results/README.md
 ```
 
-Run directory là bất biến: code từ chối ghi đè. Nếu một phiên bị ngắt, đọc `status.json`, giữ log làm bằng chứng rồi chạy lại **cùng experiment id/seed** với `--set experiment.attempt=retry1`. Thư mục vật lý mới được tạo nhưng aggregator vẫn ghép đúng hai seed của cùng cấu hình.
+Trước khi nộp, bổ sung kết quả thật, báo cáo và slide:
 
-Với queue, retry các thư mục hỏng bằng lệnh sau; thêm `--only <id>` nếu chỉ muốn một cấu hình:
-
-```bash
-python scripts/run_matrix.py configs/matrices/member1_optimizer_norm.yaml \
-  --retry-failed --attempt retry1
+```text
+results/
+├── raw/                 # summary/epoch/step CSV của ba thành viên
+├── mean_std.csv
+├── final_test.csv
+└── figures/             # ít nhất 6 hình dùng trong báo cáo
+report.pdf               # báo cáo 8–12 trang
+slides.pdf               # slide bảo vệ 8–12 slide
 ```
 
-## Quy trình thí nghiệm chính thức
+Không đưa CIFAR-10, toàn bộ checkpoint, token Kaggle hay dữ liệu pilot vào GitHub. Chỉ cần giữ checkpoint của cấu hình cuối nếu nhóm muốn nộp thêm.
 
-1. Chạy LR range test/pilot với cùng ngân sách cho từng optimizer:
+## Từ số 0 tới lần chạy đầu tiên
 
-   ```bash
-   python scripts/lr_range_test.py --tag sgd_pilot1 \
-     --set optimizer.name=sgd --start-lr 1e-5 --end-lr 1
-   ```
+### 1. Tạo GitHub nhóm
 
-2. Chốt mọi ô còn mở trong protocol; cập nhật LR trong matrix; đổi `protocol_version`; chỉ sau review chéo mới đổi `approved: true`.
+1. Một người tạo repository GitHub. Repo public là đơn giản nhất.
+2. Đưa các file trong cấu trúc phía trên lên nhánh `main`.
+3. Thành viên khác sửa qua branch/commit hoặc gửi notebook cho người tích hợp. Không để ba training loop khác nhau.
+4. Khi đã chốt một bản chạy thật, tăng `NOTEBOOK_VERSION` trong notebook và cả nhóm dùng đúng bản đó.
 
-3. Kiểm tra queue mà chưa dùng GPU:
+GitHub chỉ dùng để giữ bản chuẩn, lịch sử thay đổi, tài liệu và kết quả nhỏ. Nhóm vẫn phát triển và huấn luyện trực tiếp trên Kaggle.
 
-   ```bash
-   python scripts/run_matrix.py configs/matrices/member1_optimizer_norm.yaml --dry-run
-   python scripts/run_matrix.py configs/matrices/member2_schedules.yaml --dry-run
-   python scripts/run_matrix.py configs/matrices/member3_regularization.yaml --dry-run
-   ```
+### 2. Đưa notebook lên Kaggle
 
-4. Mỗi người chạy queue của mình. Khi matrix còn là draft, pilot phải ghi rõ `--allow-draft`; official run không nên cần cờ này.
+1. Kaggle → **Create → New Notebook**.
+2. Chọn **File → Import Notebook** hoặc upload `notebooks/DeTai3_Kaggle.ipynb`.
+3. Mở **Settings → Accelerator → GPU**.
+4. Chọn **Add Input** và thêm [CIFAR-10 Python, Version 1](https://www.kaggle.com/datasets/harshajakkam/cifar-10-python-cifar-10-python-tar-gz), là bản đã kiểm tra có thư mục Python cần dùng. Nếu link này thay đổi, chỉ chọn dataset khác khi cấu trúc file giống hệt bên dưới.
+5. Bản dữ liệu phải chứa đúng thư mục:
 
-   ```bash
-   python scripts/run_matrix.py configs/matrices/member1_optimizer_norm.yaml
-   ```
+```text
+cifar-10-batches-py/
+├── data_batch_1
+├── data_batch_2
+├── data_batch_3
+├── data_batch_4
+├── data_batch_5
+├── test_batch
+└── batches.meta
+```
 
-5. Tổng hợp tự động và audit đủ seed. Ngoài mean±std, `paired_deltas.csv` giữ chênh lệch với anchor cho từng seed để nhìn ra trường hợp hai seed đảo dấu:
+Không chọn bản CSV/PNG. Nếu dataset chỉ có `cifar-10-python.tar.gz`, hãy chọn một bản đã giải nén để notebook đọc trực tiếp bằng `torchvision.datasets.CIFAR10`.
 
-   ```bash
-   python scripts/aggregate_results.py --strict
-   python scripts/plot_results.py
-   ```
+### 3. Tự kiểm tra trên Kaggle
 
-   `runs/` và `results/` được ignore trong lúc chạy để metadata không tự báo dirty. Sau audit, dùng `git add -f` cho đúng các CSV/JSON/hình nhỏ cần nộp; không force-add checkpoint.
+Ở cell đầu đặt:
 
-6. Chỉ sau khi đã khóa cấu hình cuối bằng validation: điền `configs/final_selection.yaml` với `experiment_id`, `semantic_fingerprint`, `training_git_commit` trong summary, protocol version, hai seed, người chọn và thời điểm; đặt `frozen: true` rồi commit file. Checkout đúng commit chứa quyết định này và đánh giá **cả hai seed** của đúng cấu hình đã chọn:
+```python
+MEMBER = 1
+DEBUG = True
+PART = "pilot1"
+RUN_IDS = []
+```
 
-   ```bash
-   python scripts/evaluate_test.py runs/<experiment_id>/seed_42 --confirm-final
-   python scripts/evaluate_test.py runs/<experiment_id>/seed_2026 --confirm-final
-   python scripts/aggregate_test_results.py
-   ```
+Sau đó chọn **Run All**. Notebook sẽ:
 
-Không dùng test accuracy để đổi LR, epoch, augmentation hoặc chọn mô hình. Các ablation báo validation mean±std; test mean±std chỉ dành cho một cấu hình cuối đã freeze.
+- in Python, PyTorch, torchvision, tên GPU và đường dẫn CIFAR-10;
+- tạo split cố định 45.000 train / 5.000 validation;
+- in shape của batch và logits;
+- chạy forward + backward một batch;
+- train một cấu hình, seed 42, trong một epoch trên tập nhỏ;
+- lưu ba CSV vào `/kaggle/working/it4653`.
 
-## Đọc code theo thứ tự
+Đây là bước nhóm tự kiểm tra ngay trong môi trường thật. Hãy nhìn loss, accuracy, shape và các file đầu ra; repository không cần một bộ test riêng.
 
-Để hiểu toàn bộ pipeline mà không bị nhảy lớp abstraction:
+### 4. Chạy thí nghiệm thật
 
-1. [`configs/base.yaml`](configs/base.yaml) — một run gồm những biến nào.
-2. [`src/dlstudy/model.py`](src/dlstudy/model.py) — ResNet block, shortcut, BN/LN/GN, Dropout.
-3. [`src/dlstudy/data.py`](src/dlstudy/data.py) — split, transform và DataLoader seed.
-4. [`src/dlstudy/optimization.py`](src/dlstudy/optimization.py) — sáu optimizer và công thức LR theo step.
-5. [`src/dlstudy/training.py`](src/dlstudy/training.py) — forward, loss, backward, update, validation, early stopping, checkpoint.
-6. [`scripts/run_matrix.py`](scripts/run_matrix.py) — biến một matrix thành từng run độc lập.
-7. [`scripts/aggregate_results.py`](scripts/aggregate_results.py) và [`scripts/plot_results.py`](scripts/plot_results.py) — số liệu báo cáo sinh từ log thế nào.
+Sau khi pilot hợp lý:
 
-Bản walkthrough và câu hỏi tự kiểm tra nằm ở [CODE_WALKTHROUGH.md](docs/CODE_WALKTHROUGH.md). Kế hoạch ba người nằm ở [TEAM_PLANS.md](docs/TEAM_PLANS.md); quy trình pin commit, chia session và ghép artifact từ ba tài khoản nằm ở [KAGGLE_WORKFLOW.md](docs/KAGGLE_WORKFLOW.md).
+```python
+DEBUG = False       # 20 epochs, seeds 42 và 2026
+PART = "part1"
+RUN_IDS = ["opt_sgd", "opt_nesterov"]
+```
 
-## Quy tắc so sánh
+Mỗi thành viên dùng **Copy & Edit** từ cùng notebook version:
 
-- Trong một nhánh chỉ thay đúng yếu tố đang khảo sát.
-- LR của mỗi optimizer được tìm với cùng ngân sách, không ép cùng một LR.
-- Batch-size study giữ LR cố định để không thêm biến “linear scaling”.
-- Adam và AdamW được chạy với cùng weight decay dương; nếu weight decay bằng 0, hai thuật toán gần như trùng và phép so sánh mất ý nghĩa.
-- Thời gian chỉ so giữa runs có cùng `gpu_name`; accuracy có thể tổng hợp trên hai máy nếu software/config/split trùng.
-- Với hai seed, chỉ mô tả mean ± std. Nếu chênh lệch cùng cỡ std hoặc hai seed đảo thứ tự, kết luận là “chưa đủ bằng chứng”, không gọi đó là kiểm định ý nghĩa thống kê.
+- `MEMBER=1`: optimizer, normalization và anchor;
+- `MEMBER=2`: learning-rate schedule;
+- `MEMBER=3`: regularization;
+- `MEMBER=0`: toàn bộ 26 cấu hình, chỉ dùng khi muốn tái lập tất cả trên một tài khoản.
 
-## Nguồn và phần nhóm tự viết
+`RUN_IDS=[]` chạy toàn bộ phần đã chọn. Nên chia thành `part1`, `part2`... để vừa thời lượng một phiên Kaggle. Mỗi cấu hình chính thức tự chạy hai seed 42 và 2026.
 
-Kiến trúc dựa trên bài báo [Deep Residual Learning for Image Recognition](https://arxiv.org/abs/1512.03385); dữ liệu từ [trang CIFAR chính thức](https://www.cs.toronto.edu/~kriz/cifar.html). Cặp phiên bản PyTorch được chọn từ [bảng phiên bản chính thức](https://pytorch.org/get-started/previous-versions/); cách seed worker bám theo [hướng dẫn reproducibility của PyTorch](https://docs.pytorch.org/docs/stable/notes/randomness.html).
+Sau mỗi part, chọn **Save Version** và tải hoặc tạo Kaggle Dataset từ ba file:
 
-Toàn bộ phần ghép CIFAR ResNet, normalization wrapper, scheduler, training loop, logging, matrix runner, aggregator và plotting trong repository này là base code do nhóm cần đọc, kiểm thử và chịu trách nhiệm. Khi dùng thêm nguồn khác, ghi rõ file/phần kế thừa tại đây trước khi nộp.
+```text
+summary_memberN_partX.csv
+epoch_log_memberN_partX.csv
+step_log_memberN_partX.csv
+```
+
+Không dùng CSV có `PART="pilot..."` trong báo cáo.
+
+## Sửa code trực tiếp trên Kaggle
+
+Notebook đi đúng theo luồng học sâu:
+
+1. import và các tùy chọn thường sửa;
+2. baseline và danh sách thí nghiệm;
+3. CIFAR-10 và split;
+4. ResNet-18, BN/LN/GN và Dropout;
+5. optimizer và learning-rate schedule;
+6. train, validation và early stopping;
+7. kiểm tra trực tiếp một batch;
+8. chạy thí nghiệm và lưu CSV;
+9. ghép CSV, tính mean ± std và vẽ hình;
+10. final test sau khi đã chọn cấu hình bằng validation.
+
+Khi sửa một hàm, chạy lại cell chứa hàm đó, cell kiểm tra một batch và một pilot. Nếu sửa code lõi, người tích hợp cập nhật notebook chuẩn, tăng `NOTEBOOK_VERSION`, rồi cả ba chuyển sang bản mới. Không cần clone về máy local chỉ để thử code.
+
+### Đồng bộ Kaggle với GitHub mà không dùng local
+
+1. Người tích hợp sửa và pilot trên Kaggle.
+2. Chọn **File → Download Notebook** để lấy file `.ipynb` mới.
+3. Trên GitHub, upload file đó vào đúng `notebooks/DeTai3_Kaggle.ipynb` và commit với mô tả ngắn, ví dụ `Fix warm-up formula`.
+4. Hai thành viên còn lại tải/import bản mới hoặc **Copy & Edit** Kaggle version mới.
+5. CSV/hình sau khi chạy cũng có thể upload bằng giao diện web GitHub vào `results/`; không cần Git command.
+
+Chỉ người tích hợp cập nhật notebook chuẩn. Hai người còn lại có thể thử trên bản Copy nhưng không tự tạo một “bản chuẩn” khác.
+
+## Ghép kết quả của ba người
+
+1. Người tổng hợp mở một bản sạch của notebook chuẩn.
+2. Add Input các CSV chính thức của cả ba thành viên.
+3. Ở cell đầu đặt `DEBUG=False` và đúng `NOTEBOOK_VERSION` đã dùng chạy official; sau đó chạy cell import và cell **Ghép CSV và vẽ tối thiểu 6 biểu đồ**. Không chạy cell train.
+4. Notebook tạo `mean_std.csv` và sáu hình trong `/kaggle/working/it4653/figures`.
+5. Đưa các CSV gốc, `mean_std.csv` và hình thật vào `results/` của GitHub.
+6. Mọi số được chép vào báo cáo phải khớp các file này.
+
+Quy ước file kết quả chi tiết nằm ở [results/README.md](results/README.md).
+
+## Phạm vi thí nghiệm bắt buộc
+
+- 6 optimizer: SGD, SGD momentum, Nesterov, RMSProp, Adam, AdamW.
+- Constant/step/cosine × có/không warm-up.
+- 8 cấu hình regularization: none, weight decay, ba Dropout, augmentation, early stopping, combined.
+- BN/LN/GN × batch size 8/32/128.
+- Một anchor dùng chung: 26 cấu hình duy nhất × 2 seed = **52 lượt chạy**.
+- Ít nhất 6 biểu đồ và một mục “khuyến nghị thực hành” dựa trên số liệu thật của nhóm.
+
+`≥20 lượt` trong PDF là mức sàn, không thay thế danh sách phép so sánh bắt buộc. PDF yêu cầu đo regularization riêng và kết hợp nhưng không ấn định chính xác tổng số cấu hình. Tài liệu Kickoff lại không nhất quán về cấu hình `WD + augmentation`; nếu giảng viên xác nhận cần cấu hình trung gian này, thêm một dòng và tổng thành 54 lượt.
+
+Label smoothing/Mixup/CutMix và learning-rate range test nằm ở phần mở rộng, nên nhóm có thể bỏ để giữ phạm vi đơn giản.
+
+### Baseline đã triển khai trong notebook
+
+| Thành phần | Giá trị |
+|---|---|
+| Model | ResNet-18 CIFAR, stem 3×3 stride 1, không max-pool |
+| Data | CIFAR-10, split 45k/5k bằng seed 4653 |
+| Epoch / training seed | 20 / `{42, 2026}` |
+| Batch size | 128, trừ nhánh normalization |
+| Optimizer | SGD momentum 0.9 |
+| LR / schedule | 0.1 / constant, không warm-up |
+| Normalization | BatchNorm |
+| Weight decay | `5e-4`, chỉ Conv/Linear weights; không decay bias/norm |
+| Dropout / augmentation / early stop | `0.0` / tắt / tắt |
+
+Các LR `0.1` cho họ SGD và `0.001` cho RMSProp/Adam/AdamW trong notebook là **giá trị gợi ý để pilot**, chưa phải kết luận. Ngày 1, thử cùng số ứng viên và cùng ngân sách cho từng optimizer, ghi lại lựa chọn, rồi mới khóa LR và `NOTEBOOK_VERSION` cho official runs.
+
+## Nguyên tắc không được lược bỏ
+
+1. Mọi run dùng cùng split seed 4653 và training seeds 42/2026.
+2. Validation không dùng augmentation.
+3. Trong một phép so sánh chỉ đổi yếu tố đang khảo sát và giữ cùng ngân sách epoch. Riêng nhánh optimizer dùng LR phù hợp đã chốt trước official run; tất cả optimizer phải nhận cùng ngân sách pilot chọn LR.
+4. Báo mean ± sample standard deviation; nếu hai seed trái xu hướng, ghi “chưa đủ bằng chứng”.
+5. Giữ `RUN_FINAL_TEST=False` cho tới khi đã chọn cấu hình cuối bằng validation.
+6. Không bịa hoặc sửa tay số liệu; bảng và hình phải sinh từ CSV gốc.
+
+## Nguồn tham khảo và phần nhóm tự viết
+
+Notebook dùng API huấn luyện của PyTorch nhưng tự định nghĩa ResNet-18 cho ảnh 32×32, normalization, training loop, danh sách ablation, log và biểu đồ. Nguồn lý thuyết tối thiểu nên trích dẫn trong README/report gồm:
+
+- Kaiming He và cộng sự, [Deep Residual Learning for Image Recognition](https://arxiv.org/abs/1512.03385).
+- Alex Krizhevsky, [CIFAR-10 and CIFAR-100 datasets](https://www.cs.toronto.edu/~kriz/cifar.html).
+- Tài liệu chính thức của [PyTorch optimizers](https://pytorch.org/docs/stable/optim.html) và [normalization layers](https://pytorch.org/docs/stable/nn.html#normalization-layers).
+
+Nếu nhóm lấy thêm code/công thức từ nguồn công khai, phải thêm link và nói rõ cell/phần nào được tham khảo. Việc AI hỗ trợ bản nháp được khai báo theo [docs/AI_USAGE_DECLARATION.md](docs/AI_USAGE_DECLARATION.md); nhóm vẫn phải đọc, chạy và giải thích được mọi dòng.
+
+## Checklist trước khi nộp
+
+- [ ] Link GitHub mở được; có thêm `.zip` dự phòng.
+- [ ] README đã được một thành viên khác làm theo từ một Kaggle Notebook mới.
+- [ ] `requirements.txt` ghi đúng phiên bản in từ notebook chính thức.
+- [ ] Notebook chuẩn có `DEBUG=True` khi người chấm mở và không chứa token/bí mật.
+- [ ] `results/raw/` có log mọi lượt chính thức: thời gian, config, seed, kết quả.
+- [ ] Mỗi cấu hình có hai seed và bảng báo mean ± std.
+- [ ] Có ít nhất 6 biểu đồ và số trong report khớp log.
+- [ ] Báo cáo PDF 8–12 trang, slide 8–12 trang/slide.
+- [ ] [TEAM_PLAN.md](TEAM_PLAN.md) có công việc và tỷ lệ đóng góp tổng 100%.
+- [ ] Báo cáo có trích dẫn nguồn và mục khai báo sử dụng AI.
+
+Chi tiết phân công nằm trong [TEAM_PLAN.md](TEAM_PLAN.md).
