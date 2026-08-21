@@ -27,7 +27,7 @@ Validation → lưu best result → CSV → mean ± std → biểu đồ
 - `NOTEBOOK_VERSION` cho biết ba người có đang dùng cùng code lõi không.
 - `SAVE_CHECKPOINTS=False` vì ablation cần số liệu, không cần lưu 52 model lớn.
 
-`torch.cuda.is_available()` kiểm GPU thật của Kaggle. `DATA_ROOT` là thư mục cha của `cifar-10-batches-py`, đúng định dạng mà `torchvision.datasets.CIFAR10` cần.
+`torch.cuda.is_available()` kiểm GPU thật của Kaggle. Notebook từ chối P100 để tránh lỗi tương thích PyTorch hiện tại và cố ý dùng `cuda:0` của T4 x2. Nếu Input chỉ có `cifar-10-python.tar.gz`, module chuẩn `tarfile` giải nén archive vào vùng ghi được `/kaggle/working`; `DATA_ROOT` sau đó là thư mục cha của `cifar-10-batches-py` mà `torchvision.datasets.CIFAR10` cần.
 
 ## Cell 2 - baseline và thí nghiệm
 

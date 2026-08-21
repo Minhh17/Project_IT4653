@@ -45,12 +45,12 @@ Chế độ này gồm 26 cấu hình × 2 seed = 52 lượt. Nó có thể vư�
 
 1. Tải `notebooks/DeTai3_Kaggle.ipynb` từ đúng release/commit GitHub mà nhóm ghi trong báo cáo.
 2. Kaggle → **Create → New Notebook** → import file notebook.
-3. Settings → Accelerator → chọn GPU.
-4. Add Input → thêm [CIFAR-10 Python, Version 1](https://www.kaggle.com/datasets/harshajakkam/cifar-10-python-cifar-10-python-tar-gz), hoặc đúng dataset/version mà nhóm đã ghi trong báo cáo.
-5. Dataset phải chứa `cifar-10-batches-py/data_batch_1` tới `data_batch_5`, `test_batch` và `batches.meta`.
+3. Settings → Accelerator → chọn **GPU T4 x2**.
+4. Add Input → thêm [CIFAR-10 Python](https://www.kaggle.com/datasets/pankrzysiu/cifar10-python), hoặc đúng dataset/version mà nhóm đã ghi trong báo cáo.
+5. Dataset trên chứa `cifar-10-python.tar.gz`; notebook tự giải nén và kiểm `cifar-10-batches-py/data_batch_1` trước khi train.
 6. Không cần chạy `pip install` vì các thư viện đã có trong Kaggle image. Nếu import báo thiếu thư viện, chỉ cài đúng package/phiên bản ghi trong `requirements.txt`.
 
-Cell đầu sẽ dừng với thông báo rõ nếu không thấy GPU hoặc không tìm thấy đúng một thư mục `cifar-10-batches-py`.
+Cell đầu sẽ dừng với thông báo rõ nếu không thấy GPU, nếu chọn P100, hoặc nếu input không có đúng một archive/thư mục CIFAR-10 Python.
 
 ## 3. Các giá trị được phép sửa
 

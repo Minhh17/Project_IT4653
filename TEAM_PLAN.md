@@ -76,7 +76,7 @@ Bàn giao:
 
 ### Ngày 1 - cả nhóm
 
-1. Import notebook, Add Input CIFAR-10 và bật GPU.
+1. Import notebook, Add Input `pankrzysiu/cifar10-python` và chọn GPU T4 x2.
 2. Cùng đọc các cell theo thứ tự.
 3. Mỗi người chạy `DEBUG=True`, tự xem batch/logits/loss và pilot 1 epoch.
 4. Pilot cùng ngân sách để chốt LR từng optimizer; chốt baseline, 52 hay 54 runs và notebook version.
