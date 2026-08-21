@@ -162,3 +162,4 @@ Notebook dùng API huấn luyện của PyTorch nhưng tự định nghĩa ResNe
 Nếu nhóm lấy thêm code/công thức từ nguồn công khai, phải thêm link và nói rõ cell/phần nào được tham khảo. Việc AI hỗ trợ bản nháp được khai báo theo [docs/AI_USAGE_DECLARATION.md](docs/AI_USAGE_DECLARATION.md); nhóm vẫn phải đọc, chạy và giải thích được mọi dòng.
 
 Chi tiết phân công nằm trong [TEAM_PLAN.md](TEAM_PLAN.md).
+
