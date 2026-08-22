@@ -15,13 +15,15 @@ CrossEntropyLoss
    ↓ backward tạo gradient
 Optimizer cập nhật weights
    ↓ lặp theo epoch
-Validation → lưu best result → CSV → mean ± std → biểu đồ
+Validation chọn best checkpoint → test đúng một lần → CSV → mean ± std → biểu đồ
 ```
 
 ## Cell 1 - import và công tắc chạy
 
 - `MEMBER` chọn danh sách thí nghiệm, không thay đổi thuật toán train.
+- `RUN_ALL_CONFIGS=True` ghi đè các nút còn lại để chạy đủ 26 cấu hình × 2 seed.
 - `DEBUG=True` giảm dữ liệu, epoch và seed để nhóm kiểm tra nhanh.
+- Khi `DEBUG=True`, notebook cố ý không đánh giá test vì nhóm vẫn còn dùng pilot/validation để chốt cấu hình.
 - `PART` chỉ là tên file, giúp hai phiên không ghi đè nhau.
 - `RUN_IDS` lọc đúng cấu hình cần chạy.
 - `NOTEBOOK_VERSION` cho biết ba người có đang dùng cùng code lõi không.
@@ -49,15 +51,16 @@ chỉ đổi optimizer và LR đã chọn cho optimizer đó; batch size, normal
 
 ## Cell 3 - dữ liệu
 
-Ba dataset object cùng trỏ tới CIFAR-10 train nhưng dùng transform khác nhau:
+Ba dataset object cùng trỏ tới CIFAR-10 train và một object trỏ tới test:
 
 - `TRAIN_CLEAN`: ảnh train không augmentation;
 - `TRAIN_AUGMENTED`: crop, flip và color jitter;
 - `EVAL_DATA`: ảnh sạch dùng cho validation.
+- `TEST_DATA`: 10.000 ảnh test chính thức, luôn dùng transform sạch.
 
 `torch.randperm(..., generator=split_generator)` tạo một hoán vị cố định bằng seed 4653. 45.000 chỉ số đầu là train, 5.000 chỉ số sau là validation. Training seed 42/2026 không làm thay đổi split này.
 
-`DataLoader` gom ảnh thành mini-batch. Train dùng `shuffle=True`; validation dùng `shuffle=False`. Generator của train được seed để thứ tự batch có thể tái lập.
+`DataLoader` gom ảnh thành mini-batch. Train dùng batch size đang khảo sát và `shuffle=True`; validation/test dùng batch eval 256 cố định và `shuffle=False`. Khi `model.eval()`, BatchNorm dùng running statistics và Dropout tắt, nên batch eval không làm thay đổi batch size huấn luyện đang được khảo sát. Generator của train được seed để thứ tự batch có thể tái lập.
 
 ## Cell 4 - ResNet-18 cho CIFAR-10
 
@@ -96,7 +99,7 @@ Dropout nằm sau global average pooling và trước classifier. Khi train, m�
 
 `set_learning_rate` cập nhật LR trong từng parameter group của optimizer trước khi train epoch đó.
 
-## Cell 6 - train và validation
+## Cell 6 - train, validation và test một lần
 
 Trình tự quan trọng của một mini-batch:
 
@@ -118,9 +121,11 @@ optimizer.step()
 
 `best_state` là bản weights tại epoch có validation accuracy cao nhất. Early stopping theo dõi validation loss và dừng khi không cải thiện đủ số epoch `patience`.
 
+Sau vòng epoch, code nạp lại đúng `best_state`, gọi `model.eval()` và đo test đúng một lần. Test không gọi `backward`, không cập nhật weights và không quyết định epoch; nó chỉ đo khả năng tổng quát hóa của checkpoint đã được validation chọn.
+
 Cuối run, hàm trả bốn thứ:
 
-- một dòng summary;
+- một dòng summary có cả validation và test;
 - log từng epoch;
 - log thưa từng step;
 - best model state trong bộ nhớ.
@@ -145,19 +150,20 @@ Tên file chứa `MEMBER` và `PART`, nên nhóm biết file đến từ ai và 
 
 `read_matching_csv` đọc file trong `/kaggle/working` và các Input được attach. `drop_duplicates(["experiment_id", "seed"])` giữ một dòng cho mỗi run chính thức.
 
-`groupby(...).agg(...)` gom hai seed của cùng cấu hình để tính:
+`groupby(...).agg(...)` gom hai seed của cùng cấu hình để tính cả best-validation và test:
 
-- `accuracy_mean`: trung bình;
-- `accuracy_std`: sample standard deviation;
+- `test_accuracy_mean`: trung bình test;
+- `test_accuracy_std`: sample standard deviation của test;
+- các cột tương ứng cho best-validation;
 - `seeds`: số seed thực có.
 
 Error bar trong biểu đồ là độ lệch chuẩn giữa hai seed, không phải confidence interval hay kiểm định thống kê.
 
-## Cell 10 - final test
+## Cell 10 - kiểm tra test-all
 
-Trong giai đoạn chọn cấu hình, test set chưa được tạo. Sau khi nhóm chốt ID tốt nhất bằng validation, cell cuối train lại đúng cấu hình với hai seed, nạp best weights rồi mới đo test.
+Cell này không train. Nó kiểm tra đã có đủ 26 experiment ID, mỗi ID đủ hai seed và không dòng nào thiếu test accuracy. Khi chạy theo part, cell chỉ in phần còn thiếu; khi bật `RUN_ALL_CONFIGS=True`, thiếu bất kỳ run nào sẽ báo lỗi.
 
-Nếu nhìn test rồi quay lại đổi LR/model, test đã trở thành validation và con số cuối không còn là đánh giá khách quan.
+Test-all chỉ đúng khi toàn bộ config/LR đã được khóa trước. Nếu nhìn test rồi quay lại đổi LR/model hoặc chỉ chạy lại cấu hình có kết quả xấu, test đã trở thành validation và bảng so sánh không còn khách quan.
 
 ## Câu hỏi cả ba người nên tự trả lời trước bảo vệ
 

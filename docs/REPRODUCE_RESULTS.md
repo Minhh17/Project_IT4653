@@ -13,9 +13,10 @@ MEMBER = 1
 DEBUG = True
 PART = "pilot_reproduce"
 RUN_IDS = []
+RUN_ALL_CONFIGS = False
 ```
 
-Chạy notebook từ trên xuống. Kết quả pilot chỉ để kiểm tra code, không đưa vào bảng báo cáo.
+Chạy notebook từ trên xuống. Kết quả pilot chỉ để kiểm tra code, không đưa vào bảng báo cáo và không đọc test set.
 
 ### Mức B - chạy lại một kết quả chính
 
@@ -33,13 +34,10 @@ Mỗi cấu hình tự chạy seed 42 và 2026. Sau khi xong, cell tổng hợp 
 ### Mức C - chạy lại toàn bộ ma trận
 
 ```python
-MEMBER = 0
-DEBUG = False
-PART = "full"
-RUN_IDS = []
+RUN_ALL_CONFIGS = True
 ```
 
-Chế độ này gồm 26 cấu hình × 2 seed = 52 lượt. Nó có thể vượt thời lượng một phiên Kaggle, nên thực tế nhóm chia cho ba tài khoản hoặc chia `RUN_IDS` thành nhiều part. Dù chia phiên, tất cả vẫn dùng cùng notebook, seed và baseline.
+Chỉ cần `RUN_ALL_CONFIGS=True`; notebook tự đặt các giá trị còn lại cho full suite. Chế độ này gồm 26 cấu hình × 2 seed = 52 lượt và mỗi lượt tự đo test. Trên Kaggle T4, tổng thời gian gần như chắc vượt giới hạn 12 giờ của một Save & Run All; preset này phù hợp khi dùng GPU nhanh hơn hoặc môi trường không có giới hạn phiên. Muốn chia `RUN_IDS` trên T4, phải giữ `RUN_ALL_CONFIGS=False` rồi dùng chế độ member/part thông thường.
 
 ## 2. Chuẩn bị một Kaggle Notebook sạch
 
@@ -54,14 +52,15 @@ Cell đầu sẽ dừng với thông báo rõ nếu không thấy GPU, nếu ch�
 
 ## 3. Các giá trị được phép sửa
 
-Trong lần chạy thông thường, chỉ sửa sáu giá trị ở đầu notebook:
+Trong lần chạy thông thường, chỉ sửa các giá trị ở đầu notebook:
 
 ```python
 MEMBER = 1
 DEBUG = True
 PART = "pilot1"
 RUN_IDS = []
-NOTEBOOK_VERSION = "v1"
+RUN_ALL_CONFIGS = False
+NOTEBOOK_VERSION = "v2"
 SAVE_CHECKPOINTS = False
 ```
 
@@ -69,8 +68,9 @@ SAVE_CHECKPOINTS = False
 - `DEBUG`: `True` chạy nhanh trên tập nhỏ; `False` chạy chính thức 20 epoch và hai seed.
 - `PART`: tên phần để các phiên không ghi đè nhau.
 - `RUN_IDS`: danh sách cấu hình cần chạy; rỗng nghĩa là cả phần.
+- `RUN_ALL_CONFIGS`: `True` tự chạy toàn bộ 26 cấu hình × 2 seed; các nút member/debug/part/run IDs được preset tự ghi đè.
 - `NOTEBOOK_VERSION`: phiên bản code lõi mà cả nhóm thống nhất.
-- `SAVE_CHECKPOINTS`: thường để `False`; chỉ cần checkpoint cho cấu hình cuối.
+- `SAVE_CHECKPOINTS`: thường để `False`; checkpoint tốt nhất được test ngay trong cùng run rồi giải phóng.
 
 Không đổi `BASE_CONFIG`, split, model hoặc training loop giữa hai seed của cùng một cấu hình.
 
@@ -81,7 +81,9 @@ Không đổi `BASE_CONFIG`, split, model hoặc training loop giữa hai seed c
 - Hai training seed chính thức là 42 và 2026.
 - Train chỉ dùng augmentation khi chính cấu hình đó yêu cầu.
 - Validation luôn dùng transform sạch.
-- Test set chỉ được tạo trong cell cuối sau khi nhóm đã chọn cấu hình bằng validation.
+- Validation chọn checkpoint có accuracy cao nhất trong các epoch đã chạy.
+- Sau khi train kết thúc, notebook nạp checkpoint đó và đo test đúng một lần; test không tham gia backward, early stopping hay chọn checkpoint.
+- Validation/test đều dùng transform sạch, `shuffle=False`; batch 8/32/128 chỉ là batch train, còn evaluation dùng batch 256 cố định.
 
 Đây là các điều kiện để một phép so sánh có kiểm soát: cùng dữ liệu, cùng model nền, cùng seed và cùng ngân sách; chỉ đổi yếu tố đang khảo sát.
 
@@ -100,7 +102,7 @@ Notebook ghi sau từng run để giảm rủi ro mất log khi Kaggle ngắt ph
 
 ### `summary_*.csv`
 
-Mỗi dòng là một lượt chạy `(experiment_id, seed)`, gồm cấu hình thực tế, best validation accuracy, best epoch, kết quả cuối, thời gian, GPU, phiên bản thư viện và notebook version. Đây là nhật ký chính theo yêu cầu PDF.
+Mỗi dòng là một lượt chạy `(experiment_id, seed)`, gồm cấu hình thực tế, best validation accuracy/epoch, test loss/accuracy, kết quả epoch cuối, thời gian train/test, GPU, phiên bản thư viện và notebook version. Đây là nhật ký chính theo yêu cầu PDF.
 
 ### `epoch_log_*.csv`
 
@@ -148,25 +150,29 @@ Không gửi notebook đã sửa training loop riêng lẻ rồi tiếp tục ch
 Sáu hình mặc định:
 
 1. optimizer train/validation loss theo epoch;
-2. optimizer accuracy mean ± std;
+2. optimizer test accuracy mean ± std;
 3. schedule train loss theo global step;
-4. schedule accuracy mean ± std;
-5. normalization × batch size;
-6. regularization accuracy mean ± std.
+4. schedule test accuracy mean ± std;
+5. normalization × batch size theo test accuracy;
+6. regularization test accuracy mean ± std.
 
 Nếu một số liệu trong report được cập nhật, hãy sinh lại bảng/hình từ log thay vì sửa trực tiếp file kết quả.
 
-## 8. Final test
+## 8. Protocol test-all
 
-Chỉ sau khi chốt `FINAL_EXPERIMENT_ID` bằng validation:
+Trước official run, nhóm phải khóa 26 cấu hình, hai seed, LR và notebook `v2` trong GitHub. Với mỗi `(experiment_id, seed)`, notebook làm đúng một chuỗi:
 
-```python
-DEBUG = False
-RUN_FINAL_TEST = True
-FINAL_EXPERIMENT_ID = "id_da_chot"
+```text
+train 45k → validation 5k chọn best epoch → nạp best state → test 10k đúng một lần
 ```
 
-Cell cuối train lại cấu hình đó với seed 42 và 2026, nạp best state rồi mới đánh giá test. Lưu `final_test.csv` vào repository. Không dùng test accuracy để quay lại đổi optimizer, LR hoặc regularization.
+Quy tắc checkpoint là maximum validation accuracy; nếu hai epoch bằng nhau, điều kiện `>` giữ epoch xuất hiện sớm hơn. Test dùng `model.eval()` và `torch.no_grad()`, không augmentation, không shuffle, batch eval 256 cố định. Không test thêm weights ở epoch cuối rồi chọn kết quả đẹp hơn.
+
+Test-all được dùng để kiểm chứng mức tổng quát hóa **trong từng nhánh** so với anchor. Không xếp hạng toàn bộ 26 cấu hình như một cuộc thi vì mỗi nhánh thay đổi một câu hỏi khác nhau. Nếu test và validation cho xu hướng khác nhau, báo cả hai và thảo luận; không đổi LR/config rồi chạy lại có chọn lọc.
+
+`RUN_ALL_CONFIGS=True` cung cấp đúng một preset chạy toàn bộ. Tuy nhiên [Kaggle yêu cầu Save & Run All hoàn tất trong 12 giờ](https://www.kaggle.com/docs/notebooks). Với tốc độ khoảng 15 phút/run batch 128 đã quan sát, riêng 40 run batch 128 đã gần 10 giờ; còn 12 run batch 8/32. Vì vậy trên T4 nên giữ `RUN_ALL_CONFIGS=False` và chia part hoặc ba tài khoản. Chỉ dùng preset một lần nếu GPU/môi trường đủ nhanh để hoàn tất dưới giới hạn phiên.
+
+Các CSV `v1` cũ vẫn hữu ích để phân tích thử train/validation nhưng không có weights hoặc test metrics. Không trộn chúng vào bảng official `v2`; nếu chọn protocol test-all, chạy lại các ID đó bằng `v2`.
 
 ## 9. Khóa phiên bản trước khi nộp
 

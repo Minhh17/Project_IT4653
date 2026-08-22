@@ -8,7 +8,7 @@
 |---|---|---|---:|
 | 1 | `[Điền họ tên - MSSV]` | ResNet, optimizer, normalization, anchor | 34% |
 | 2 | `[Điền họ tên - MSSV]` | Scheduler, tích hợp notebook, ghép log và biểu đồ | 33% |
-| 3 | `[Điền họ tên - MSSV]` | Data, augmentation, regularization, hỗ trợ final test | 33% |
+| 3 | `[Điền họ tên - MSSV]` | Data, augmentation, regularization, kiểm tra protocol test | 33% |
 | **Tổng** |  |  | **100%** |
 
 Đây không chỉ là bảng hình thức: khi bảo vệ, mỗi người phải giải thích được phần mình nhận và các cell lõi dùng chung.
@@ -27,6 +27,7 @@ Phạm vi:
 
 - Giải thích `BasicBlock`, shortcut và ResNet-18 CIFAR.
 - Giải thích sáu optimizer, đặc biệt momentum, Nesterov, Adam và AdamW.
+- Chạy sanity-pilot LR cho sáu optimizer hoặc đề xuất giữ các LR đã khai báo; cả nhóm duyệt trước official run.
 - Giải thích BN/LN/GN và ảnh hưởng của batch size.
 - Chạy shared anchor.
 
@@ -43,7 +44,7 @@ Bàn giao:
 Phạm vi:
 
 - Giải thích công thức constant, step, cosine và warm-up.
-- Điều phối pilot LR công bằng: cùng danh sách ứng viên/cùng ngân sách cho mỗi optimizer, chốt trước official run.
+- Hỗ trợ ghi bảng/plot pilot LR nếu nhóm thực hiện; không tự quyết LR và không tạo dependency chờ giữa hai thành viên.
 - Kiểm LR in trong log có đúng theo epoch.
 - Add Input CSV của cả ba người, tạo `mean_std.csv` và sáu hình.
 - Giữ notebook chuẩn và tăng `NOTEBOOK_VERSION` khi code lõi đổi.
@@ -63,7 +64,7 @@ Phạm vi:
 - Giải thích split 45k/5k và vì sao validation không augment.
 - Giải thích crop/flip/jitter, Dropout, weight decay, early stopping.
 - Phân tích riêng lẻ và cấu hình combined.
-- Chỉ hỗ trợ final test sau khi nhóm đã chọn model bằng validation.
+- Kiểm tra test transform sạch, không shuffle và không bị dùng cho early stopping/tuning.
 
 Khối lượng: 7 cấu hình riêng × 2 seed = **14 runs**; WD-only lấy từ anchor.
 
@@ -79,7 +80,7 @@ Bàn giao:
 1. Import notebook, Add Input `pankrzysiu/cifar10-python` và chọn GPU T4 x2.
 2. Cùng đọc các cell theo thứ tự.
 3. Mỗi người chạy `DEBUG=True`, tự xem batch/logits/loss và pilot 1 epoch.
-4. Pilot cùng ngân sách để chốt LR từng optimizer; chốt baseline, 52 hay 54 runs và notebook version.
+4. Thành viên 1 đề xuất LR optimizer, Thành viên 2 hỗ trợ ghi kết quả nếu có pilot; cả nhóm chốt LR, baseline, 52 hay 54 runs và notebook version ngay trong Ngày 1.
 
 ### Ngày 2–3 - chạy song song
 
@@ -87,6 +88,7 @@ Bàn giao:
 2. Chia `RUN_IDS` thành các part vừa thời lượng Kaggle.
 3. Sau mỗi part, Save Version và giữ ba CSV.
 4. Không đổi code/baseline giữa hai seed của cùng cấu hình.
+5. Khi đã bắt đầu official `v2` và nhìn thấy test, không đổi LR/config cho các part còn lại.
 
 ### Ngày 4 - ghép và phân tích
 
@@ -95,9 +97,9 @@ Bàn giao:
 3. Cả nhóm kiểm các config đủ hai seed.
 4. Viết kết luận; nếu hai seed đảo xu hướng thì ghi “chưa đủ bằng chứng”.
 
-### Ngày 5 - final test và bảo vệ
+### Ngày 5 - kiểm tra test và bảo vệ
 
-1. Chốt một cấu hình bằng validation.
-2. Đổi `RUN_FINAL_TEST=True` đúng một lần cho cấu hình đó.
+1. Kiểm đủ 26 cấu hình × 2 seed, mỗi dòng có validation và test.
+2. Đối chiếu test với validation; nếu xu hướng khác nhau thì báo trung thực, không quay lại sửa cấu hình.
 3. Mỗi người trình bày thử một phần không phải nhánh mình.
 4. Nộp notebook version cuối, CSV, hình, report, slide và khai báo AI.
