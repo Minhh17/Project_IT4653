@@ -228,10 +228,9 @@ Các LR `0.1` cho họ SGD và `0.001` cho RMSProp/Adam/AdamW trong notebook là
 Notebook dùng API huấn luyện của PyTorch nhưng tự định nghĩa ResNet-18 cho ảnh 32×32, normalization, training loop, danh sách ablation, log và biểu đồ. Nguồn lý thuyết tối thiểu nên trích dẫn trong README/report gồm:
 
 - Kaiming He và cộng sự, [Deep Residual Learning for Image Recognition](https://arxiv.org/abs/1512.03385).
-- Alex Krizhevsky, [CIFAR-10 and CIFAR-100 datasets](https://www.cs.toronto.edu/~kriz/cifar.html).
 - Tài liệu chính thức của [PyTorch optimizers](https://pytorch.org/docs/stable/optim.html) và [normalization layers](https://pytorch.org/docs/stable/nn.html#normalization-layers).
 
-Nếu nhóm lấy thêm code/công thức từ nguồn công khai, phải thêm link và nói rõ cell/phần nào được tham khảo. Việc AI hỗ trợ bản nháp được khai báo theo [docs/AI_USAGE_DECLARATION.md](docs/AI_USAGE_DECLARATION.md); nhóm vẫn phải đọc, chạy và giải thích được mọi dòng.
+AI hỗ trợ bản nháp được khai báo theo [docs/AI_USAGE_DECLARATION.md](docs/AI_USAGE_DECLARATION.md).
 
 ## Checklist trước khi nộp
 
