@@ -1,0 +1,6 @@
+experiment_id,label,accuracy_mean,accuracy_std,seeds
+sched_constant_warm,Constant + warm-up,0.8166,0.002545584412271605,2
+sched_cosine,Cosine,0.8618,0.0008485281374239206,2
+sched_cosine_warm,Cosine + warm-up,0.8684000000000001,0.001979898987322311,2
+sched_step,Step decay,0.8563000000000001,0.004384062043356622,2
+sched_step_warm,Step decay + warm-up,0.8655999999999999,0.0011313708498984691,2
