@@ -17,7 +17,6 @@ Thư mục này quản lý toàn bộ **dữ liệu thực nghiệm chính thứ
 
 Sau khi hoàn tất toàn bộ 52 lượt huấn luyện chính thức, cấu trúc thư mục được đồng bộ như sau:
 
-```text
 results/
 ├── README.md                           # Tài liệu hướng dẫn quy chuẩn lưu trữ này
 ├── mean_std.csv                        # Bảng tổng hợp thống kê (Mean ± Std)

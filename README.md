@@ -36,7 +36,6 @@ Tiêu chuẩn tái lập của dự án không yêu cầu thực thi lại toàn
 
 ## 3. Cấu trúc Repository
 
-```text
 .
 ├── README.md                           # Tóm tắt dự án & hướng dẫn tổng quan
 ├── TEAM_PLAN.md                        # Phân công nhiệm vụ & đóng góp của thành viên
@@ -53,7 +52,6 @@ Tiêu chuẩn tái lập của dự án không yêu cầu thực thi lại toàn
     ├── raw/                            # Log dữ liệu thô theo từng phiên chạy
     └── figures/                        # Trực quan hóa kết quả (tối thiểu 6 đồ thị)
 
-```
 
 *Lưu ý:* Các dữ liệu tạm (checkpoints mô hình, dữ liệu thô CIFAR-10, Kaggle API Tokens) bị loại bỏ khỏi hệ thống quản lý phiên bản Git. Chỉ số trên tập Kiểm thử (Test set) được tính toán ngay sau mỗi lượt huấn luyện, do đó việc lưu trữ 52 file trọng lượng mô hình (checkpoints) là không cần thiết.
 

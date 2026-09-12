@@ -114,7 +114,6 @@ SAVE_CHECKPOINTS = False
 
 Để phòng ngừa mất mát dữ liệu do ngắt kết nối phiên làm việc trên Kaggle, hệ thống sẽ tự động xuất nhật ký sau mỗi lượt chạy vào đường dẫn:
 
-```text
 /kaggle/working/it4653/
 ├── summary_memberN_partX.csv
 ├── epoch_log_memberN_partX.csv
@@ -122,7 +121,6 @@ SAVE_CHECKPOINTS = False
 ├── mean_std.csv
 └── figures/
 
-```
 
 * **`summary_*.csv`:** Lưu trữ kết quả của từng lượt chạy `(experiment_id, seed)`, bao gồm: Siêu tham số thực tế, Best Val Accuracy/Epoch, Test Loss/Accuracy, kết quả epoch cuối, thời gian huấn luyện/đánh giá, thông tin GPU, phiên bản thư viện và `NOTEBOOK_VERSION`. Dữ liệu này là cơ sở phục vụ đối soát.
 * **`epoch_log_*.csv`:** Ghi nhận thông số theo từng epoch (Loss/Accuracy của Train & Val, Learning Rate, Thời gian). Phục vụ vẽ đường cong hội tụ (Convergence Curves).
@@ -199,14 +197,12 @@ Train 45k → Val 5k [Chọn Best Epoch] → Load Best Checkpoint → Test 10k [
 
 Khi thực thi phiên chính thức, cell đầu tiên sẽ xuất thông số hệ thống của Python, PyTorch, Torchvision và GPU. Trích xuất chính xác các phiên bản này để cập nhật vào `requirements.txt`:
 
-```text
 torch==<phien_ban_truc_xuat>
 torchvision==<phien_ban_truc_xuat>
 numpy==<phien_ban_truc_xuat>
 pandas==<phien_ban_truc_xuat>
 matplotlib==<phien_ban_truc_xuat>
 
-```
 
 *(Thay thế `<phien_ban_truc_xuat>` bằng thông số thực tế từ phiên làm việc trên Kaggle. Đồng thời ghi nhận `NOTEBOOK_VERSION`, Git Commit SHA và phiên bản Kaggle Dataset trong báo cáo hoặc tài liệu README).*
 
