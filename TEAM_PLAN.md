@@ -1,105 +1,105 @@
-# Kế hoạch nhóm ba người
+# Phân công Nhiệm vụ & Kế hoạch Triển khai (TEAM_PLAN)
 
-## Bảng phân công dùng khi nộp
+## 1. Bảng Phân công Trách nhiệm & Tỷ lệ Đóng góp
 
-Điền họ tên và MSSV thật trước khi nộp. Tỷ lệ dưới đây là gợi ý ban đầu và phải được điều chỉnh nếu khối lượng thực tế thay đổi.
+Bảng thống kê thông tin nhân sự, phạm vi công việc chuyên môn và tỷ lệ đóng góp dự kiến phục vụ công tác nộp bài và bảo vệ đồ án.
 
-| Thành viên | Họ tên - MSSV | Phần chịu trách nhiệm chính | Tỷ lệ dự kiến |
-|---|---|---|---:|
-| 1 | `[Điền họ tên - MSSV]` | ResNet, optimizer, normalization, anchor | 34% |
-| 2 | `[Điền họ tên - MSSV]` | Scheduler, tích hợp notebook, ghép log và biểu đồ | 33% |
-| 3 | `[Điền họ tên - MSSV]` | Data, augmentation, regularization, kiểm tra protocol test | 33% |
-| **Tổng** |  |  | **100%** |
+| STT | Thành viên | Họ tên & MSSV | Phạm vi Chuyên môn Chịu trách nhiệm | Tỷ lệ Đóng góp |
+| :-: | :--- | :--- | :--- | :-: |
+| 1 | Thành viên 1 | Nguyễn Hải Minh — 20252595M | Kiến trúc ResNet-18, Thuật toán Tối ưu (Optimizers), Chuẩn hóa (Normalization) & Cấu hình Anchor | 34% |
+| 2 | Thành viên 2 | Nguyễn Thị Len — 20252103M | Lịch trình Lập kế hoạch Tốc độ học (Schedules), Tích hợp Pipeline, Tổng hợp Nhật ký & Trực quan hóa | 33% |
+| 3 | Thành viên 3 | Nguyễn Lâm Nghĩa — 20252596M | Xử lý Dữ liệu, Tăng cường Dữ liệu (Augmentation), Kỹ thuật Điều hòa (Regularization) & Kiểm định Protocol Test | 33% |
+| **--** | **Tổng cộng** | | | **100%** |
 
-Đây không chỉ là bảng hình thức: khi bảo vệ, mỗi người phải giải thích được phần mình nhận và các cell lõi dùng chung.
+---
 
-## Cách làm chung
+## 2. Nguyên tắc Phối hợp & Quản lý Phiên bản
 
-- Một notebook chuẩn do Thành viên 2 tích hợp và đánh version `v1`, `v2`...
-- Mỗi người dùng Copy & Edit đúng cùng version trên Kaggle.
-- Mỗi người chỉ đổi `MEMBER`, `PART`, `RUN_IDS` và cấu hình thuộc nhánh mình.
-- Thay đổi code lõi phải đưa lại cho người tích hợp; sau đó cả nhóm chuyển sang version mới.
-- Cả ba phải đọc được các cell Data → Model → Optimizer → Train, không chỉ phần mình.
+* **Kiến trúc Mã nguồn Chuẩn (Base Notebook):** Thành viên 2 chịu trách nhiệm quản lý, đóng gói và gắn mã phiên bản (`NOTEBOOK_VERSION`: `v1.0`, `v2.0`,...) cho tệp mã nguồn chính.
+* **Môi trường Thực thi Song song:** Các thành viên khai thác tệp mã nguồn chuẩn trên môi trường Kaggle Notebook theo phương thức `Copy & Edit`.
+* **Cấu hình Phân nhánh:** Mỗi thành viên thực thi các thí nghiệm bằng cách thay đổi hằng số phân luồng `MEMBER`, `PART`, và danh sách `RUN_IDS` tương ứng với phạm vi được giao.
+* **Đồng bộ Luồng Xử lý Lõi:** Mọi cập nhật liên quan đến logic tính toán hoặc cấu trúc dữ liệu cốt lõi phải được chuyển cho Thành viên 2 để nghiệm thu và phát hành phiên bản mã nguồn mới trước khi áp dụng diện rộng.
 
-## Thành viên 1 - Optimizer, normalization và anchor
+---
 
-Phạm vi:
+## 3. Chi tiết Phân công Chuyên môn
 
-- Giải thích `BasicBlock`, shortcut và ResNet-18 CIFAR.
-- Giải thích sáu optimizer, đặc biệt momentum, Nesterov, Adam và AdamW.
-- Chạy sanity-pilot LR cho sáu optimizer hoặc đề xuất giữ các LR đã khai báo; cả nhóm duyệt trước official run.
-- Giải thích BN/LN/GN và ảnh hưởng của batch size.
-- Chạy shared anchor.
+### 3.1 Thành viên 1 – Tối ưu hóa, Chuẩn hóa & Khởi tạo Anchor
 
-Khối lượng: 14 cấu hình riêng × 2 seed = **28 runs**.
+* **Phạm vi Nghiên cứu:**
+  * Phân tích lý thuyết kiến trúc `BasicBlock`, đường kết nối tắt (shortcut connection) và cơ chế điều chỉnh ResNet-18 cho dữ liệu.
+  * Phân tích chuyên sâu 06 thuật toán tối ưu hóa: SGD, SGD Momentum, Nesterov, RMSprop, Adam, và AdamW.
+  * Thực hiện khảo sát (pilot) hoặc thiết lập thông số Tốc độ học (Learning Rate) tối ưu cho các thuật toán trước khi vận hành thực nghiệm chính thức.
+  * Phân tích ảnh hưởng của các phương pháp chuẩn hóa (BatchNorm, LayerNorm, GroupNorm) kết hợp với kích thước Batch Size {8, 32, 128}.
+  * Thực thi mô hình cơ sở dùng chung (Shared Anchor).
+* **Khối lượng Thực nghiệm:** 14 cấu hình độc lập 2 seeds = **28 lượt huấn luyện (runs)**.
+* **Sản phẩm Bàn giao:**
+  * Nhật ký thực nghiệm: `summary_member1_*.csv`, log chi tiết từng epoch/step.
+  * Đồ thị phân tích: 02 biểu đồ so sánh Optimizers, 01 biểu đồ đánh giá Normalization.
+  * Soạn thảo tài liệu kỹ thuật: Phần phân tích Thuật toán Tối ưu và Kỹ thuật Chuẩn hóa.
 
-Bàn giao:
+### 3.2 Thành viên 2 – Lịch trình Lập kế hoạch LR, Tích hợp & Trực quan hóa
 
-- `summary_member1_*.csv`, epoch/step logs.
-- Hai hình optimizer và một hình normalization.
-- Phần viết optimizer + normalization.
+* **Phạm vi Nghiên cứu:**
+  * Thiết lập công thức toán học cho các lịch trình LR: Constant, Step Decay, Cosine Annealing kết hợp trạng thái Warm-up.
+  * Theo dõi và kiểm định giá trị LR thực tế ghi nhận trong log theo từng Epoch.
+  * Xây dựng module tự động nạp tập hợp CSV từ các thành viên, tính toán thống kê Mean ± Std và trích xuất tệp `mean_std.csv`.
+  * Khởi tạo hệ thống 06 biểu đồ cốt lõi phục vụ báo cáo.
+  * Quản lý phiên bản tệp mã nguồn chuẩn (`NOTEBOOK_VERSION`).
+* **Khối lượng Thực nghiệm:** 05 cấu hình độc lập 2 seeds = **10 lượt huấn luyện (runs)** (cấu hình Constant/No Warm-up kế thừa từ Anchor).
+* **Sản phẩm Bàn giao:**
+  * Nhật ký thực nghiệm: `summary_member2_*.csv`, log chi tiết từng epoch/step.
+  * Đồ thị & Bảng biểu: 02 biểu đồ phân tích LR Schedules và Bảng thống kê tổng hợp `mean_std.csv`.
+  * Soạn thảo tài liệu kỹ thuật: Phần phân tích Lịch trình LR và Thiết lập Thực nghiệm.
 
-## Thành viên 2 - Schedule, ghép CSV và biểu đồ
+### 3.3 Thành viên 3 – Dữ liệu & Kỹ thuật Điều hòa (Regularization)
 
-Phạm vi:
+* **Phạm vi Nghiên cứu:**
+  * Phân tích phương pháp phân chia dữ liệu 45k/5k và nguyên tắc loại bỏ Data Augmentation trên tập Validation.
+  * Phân tích cơ chế của các kỹ thuật Điều hòa: Random Crop/Flip/Jitter, Dropout, Weight Decay, và Early Stopping.
+  * Đánh giá hiệu năng của từng kỹ thuật riêng lẻ và cấu hình kết hợp (Combined Regularization).
+  * Giám sát tính toàn vẹn của quy trình đánh giá: đảm bảo dữ liệu Test không bị biến đổi (ngoại trừ Normalization), không bị tráo đổi (no shuffle), và không tham gia vào quá trình tinh chỉnh tham số hay dừng sớm.
+* **Khối lượng Thực nghiệm:** 07 cấu hình độc lập 2 seeds = **14 lượt huấn luyện (runs)** (cấu hình Weight Decay đơn lẻ kế thừa từ Anchor).
+* **Sản phẩm Bàn giao:**
+  * Nhật ký thực nghiệm: `summary_member3_*.csv`, log chi tiết từng epoch/step.
+  * Đồ thị phân tích: Hệ thống biểu đồ đánh giá các kỹ thuật Regularization.
+  * Soạn thảo tài liệu kỹ thuật: Phần phân tích Tiền xử lý Dữ liệu và Regularization.
 
-- Giải thích công thức constant, step, cosine và warm-up.
-- Hỗ trợ ghi bảng/plot pilot LR nếu nhóm thực hiện; không tự quyết LR và không tạo dependency chờ giữa hai thành viên.
-- Kiểm LR in trong log có đúng theo epoch.
-- Add Input CSV của cả ba người, tạo `mean_std.csv` và sáu hình.
-- Giữ notebook chuẩn và tăng `NOTEBOOK_VERSION` khi code lõi đổi.
+---
 
-Khối lượng: 5 cấu hình riêng × 2 seed = **10 runs**; constant/no-warm-up lấy từ anchor.
+## 4. Kế hoạch Tiến độ (Implementation Timeline)
 
-Bàn giao:
-
-- `summary_member2_*.csv`, epoch/step logs.
-- Hai hình schedule và bảng mean ± std chung.
-- Phần viết schedule + thiết lập thí nghiệm.
-
-## Thành viên 3 - Data và regularization
-
-Phạm vi:
-
-- Giải thích split 45k/5k và vì sao validation không augment.
-- Giải thích crop/flip/jitter, Dropout, weight decay, early stopping.
-- Phân tích riêng lẻ và cấu hình combined.
-- Kiểm tra test transform sạch, không shuffle và không bị dùng cho early stopping/tuning.
-
-Khối lượng: 7 cấu hình riêng × 2 seed = **14 runs**; WD-only lấy từ anchor.
-
-Bàn giao:
-
-- `summary_member3_*.csv`, epoch/step logs.
-- Hình regularization và phần viết tương ứng.
-
-## Timeline gợi ý
-
-### Ngày 1 - cả nhóm
-
-1. Import notebook, Add Input `pankrzysiu/cifar10-python` và chọn GPU T4 x2.
-2. Cùng đọc các cell theo thứ tự.
-3. Mỗi người chạy `DEBUG=True`, tự xem batch/logits/loss và pilot 1 epoch.
-4. Thành viên 1 đề xuất LR optimizer, Thành viên 2 hỗ trợ ghi kết quả nếu có pilot; cả nhóm chốt LR, baseline, 52 hay 54 runs và notebook version ngay trong Ngày 1.
-
-### Ngày 2–3 - chạy song song
-
-1. Đặt `DEBUG=False`.
-2. Chia `RUN_IDS` thành các part vừa thời lượng Kaggle.
-3. Sau mỗi part, Save Version và giữ ba CSV.
-4. Không đổi code/baseline giữa hai seed của cùng cấu hình.
-5. Khi đã bắt đầu official `v2` và nhìn thấy test, không đổi LR/config cho các part còn lại.
-
-### Ngày 4 - ghép và phân tích
-
-1. Thành viên 2 Add Input toàn bộ CSV.
-2. Chạy cell mean ± std và sáu biểu đồ.
-3. Cả nhóm kiểm các config đủ hai seed.
-4. Viết kết luận; nếu hai seed đảo xu hướng thì ghi “chưa đủ bằng chứng”.
-
-### Ngày 5 - kiểm tra test và bảo vệ
-
-1. Kiểm đủ 26 cấu hình × 2 seed, mỗi dòng có validation và test.
-2. Đối chiếu test với validation; nếu xu hướng khác nhau thì báo trung thực, không quay lại sửa cấu hình.
-3. Mỗi người trình bày thử một phần không phải nhánh mình.
-4. Nộp notebook version cuối, CSV, hình, report, slide và khai báo AI.
++-------------------------------------------------------------------------------+
+| GIAI ĐOẠN 1: KHỞI TẠO VÀ KIỂM THỬ PIPELINE                            |
++-------------------------------------------------------------------------------+
+| - Thiết lập môi trường Kaggle GPU, nạp dataset CIFAR-10 chuẩn.                |
+| - Kiểm tra luồng tính toán với DEBUG=True trên 01 epoch sample.               |
+| - Chốt danh mục tham số (LR, Baseline, Notebook Version v1.0).                |
++-------------------------------------------------------------------------------+
+                                       |
+                                       v
++-------------------------------------------------------------------------------+
+| GIAI ĐOẠN 2: THỰC THI THÍ NGHIỆM SONG SONG                   |
++-------------------------------------------------------------------------------+
+| - Chuyển DEBUG=False, phân chia RUN_IDS theo phân đoạn (part1, part2...).     |
+| - Thực thi 52 lượt huấn luyện chính thức trên 02 seeds cố định (42, 2026).     |
+| - Trích xuất và lưu trữ dữ liệu thô (.csv) sau mỗi phiên chạy thành công.      |
++-------------------------------------------------------------------------------+
+                                       |
+                                       v
++-------------------------------------------------------------------------------+
+| GIAI ĐOẠN 3: TỔNG HỢP VÀ PHÂN TÍCH DỮ LIỆU                            |
++-------------------------------------------------------------------------------+
+| - Tích hợp toàn bộ file log .csv vào Notebook xử lý dữ liệu chung.            |
+| - Tự động tính toán chỉ số Mean ± Std và xuất 06 biểu đồ phân tích.           |
+| - Tổng hợp kết quả, đánh giá tính ổn định thống kê giữa các seeds.            |
++-------------------------------------------------------------------------------+
+                                       |
+                                       v
++-------------------------------------------------------------------------------+
+| GIAI ĐOẠN 4: NGHIỆM THU VÀ HOÀN THIỆN HỒ SƠ                          |
++-------------------------------------------------------------------------------+
+| - Rà soát tính khớp nối giữa tập Validation và Test trên toàn bộ 26 cấu hình. |
+| - Biên soạn Báo cáo kỹ thuật (Report PDF) và Slide thuyết minh.               |
+| - Đóng gói Mã nguồn, Nhật ký thực nghiệm (.csv) và đưa lên GitHub Repository. |
++-------------------------------------------------------------------------------+

@@ -6,7 +6,7 @@ __pycache__/
 .vscode/
 .~lock.*#
 
-# Dataset và model lớn không đưa lên GitHub.
+# Dataset và model lớn
 data/
 runs/
 *.pt

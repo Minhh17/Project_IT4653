@@ -1,34 +1,36 @@
-# Quy ước kết quả
+# Quy chuẩn Lưu trữ & Quản lý Nhật ký Thực nghiệm (Results Specification)
 
-Thư mục này chứa **kết quả chạy thật** dùng trong báo cáo. Không commit dữ liệu CIFAR-10, checkpoint lớn hoặc CSV pilot.
+## 1. Tổng quan & Phạm vi Lưu trữ
 
-Sau khi hoàn tất thí nghiệm, cấu trúc nên là:
+Thư mục này quản lý toàn bộ **dữ liệu thực nghiệm chính thức** phục vụ việc trích xuất số liệu cho Báo cáo kỹ thuật (`report.pdf`) và Slide báo cáo (`slides.pdf`). 
+
+**Nguyên tắc đóng gói:**
+* **Chỉ lưu trữ:** Các tập tin nhật ký dữ liệu thô dạng `.csv`, dữ liệu tổng hợp thống kê, và đồ thị định dạng `.png`.
+* **Tuyệt đối không đưa vào Git (phải được loại bỏ qua `.gitignore`):**
+  * Tập dữ liệu thô CIFAR-10.
+  * Các tập tin trọng số mô hình (`.pt`, `.pth`, checkpoints).
+  * Nhật ký chạy thử nghiệm/kiểm thử luồng (`pilot_*.csv`).
+
+---
+
+## 2. Cấu trúc Thư mục Chuẩn (Target Directory Tree)
+
+Sau khi hoàn tất toàn bộ 52 lượt huấn luyện chính thức, cấu trúc thư mục được đồng bộ như sau:
 
 ```text
 results/
-├── raw/
-│   ├── summary_member1_part*.csv
-│   ├── summary_member2_part*.csv
-│   ├── summary_member3_part*.csv
-│   ├── epoch_log_member*.csv
-│   └── step_log_member*.csv
-├── mean_std.csv
-└── figures/
-    ├── 01_optimizer_loss.png
-    ├── 02_optimizer_accuracy.png
-    ├── 03_schedule_loss.png
-    ├── 04_schedule_accuracy.png
-    ├── 05_normalization.png
-    └── 06_regularization.png
-```
-
-Quy tắc:
-
-1. Mỗi dòng summary tương ứng đúng một `(experiment_id, seed)` và có `best_val_accuracy`, `test_loss`, `test_accuracy`.
-2. Mỗi cấu hình chính thức có seed 42 và 2026.
-3. Không sửa tay số liệu CSV; nếu có lỗi thì chạy lại và thay cả run.
-4. `mean_std.csv` và hình phải được sinh từ raw CSV bằng notebook.
-5. Số trong report/slide phải khớp các file ở đây.
-6. Không trộn file `pilot*`, log notebook `v1` và log official test-all `v2`.
-
-Git không lưu thư mục rỗng, vì vậy `raw/` và `figures/` chỉ xuất hiện sau khi nhóm thêm kết quả thật.
+├── README.md                           # Tài liệu hướng dẫn quy chuẩn lưu trữ này
+├── mean_std.csv                        # Bảng tổng hợp thống kê (Mean ± Std)
+├── raw/                                # Nhật ký thực nghiệm dữ liệu thô
+│   ├── summary_member1_part*.csv       # Nhật ký tổng hợp phần việc Thành viên 1
+│   ├── summary_member2_part*.csv       # Nhật ký tổng hợp phần việc Thành viên 2
+│   ├── summary_member3_part*.csv       # Nhật ký tổng hợp phần việc Thành viên 3
+│   ├── epoch_log_member*.csv           # Log chỉ số chi tiết theo từng Epoch
+│   └── step_log_member*.csv            # Log chỉ số chi tiết theo từng Iteration/Step
+└── figures/                            # Biểu đồ phân tích hiệu năng (Tối thiểu 6 đồ thị)
+    ├── 01_optimizer_loss.png           # So sánh Loss các Optimizers
+    ├── 02_optimizer_accuracy.png       # So sánh Accuracy các Optimizers
+    ├── 03_schedule_loss.png            # So sánh Loss các LR Schedules
+    ├── 04_schedule_accuracy.png        # So sánh Accuracy các LR Schedules
+    ├── 05_normalization.png            # Đánh giá ảnh hưởng của Normalization & Batch Size
+    └── 06_regularization.png           # Đánh giá các kỹ thuật Regularization
