@@ -1,6 +1,3 @@
-# Kaggle đã cài sẵn các thư viện này, nên không cần pip install khi chạy notebook.
-# Trước khi nộp: thay mỗi dòng bằng package==phiên_bản được in ở cell đầu
-# của Kaggle session đã tạo ra kết quả chính.
 torch
 torchvision
 numpy

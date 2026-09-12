@@ -1,12 +1,15 @@
-# Hướng dẫn tái lập kết quả trên Kaggle
+# Quy trình Tái lập Kết quả Thực nghiệm trên Kaggle
 
-Tài liệu này là “đường chạy chuẩn” dành cho thành viên trong nhóm và người chấm. Môi trường được nhóm hỗ trợ chính thức là **Kaggle Notebook có GPU**; không cần chạy local.
+Tài liệu này quy định quy trình chuẩn (standard protocol) nhằm đảm bảo khả năng tái lập kết quả thực nghiệm (reproducibility) cho các thành viên trong nhóm nghiên cứu và hội đồng đánh giá. Môi trường thực thi được hỗ trợ chính thức là **Kaggle Notebook (cấu hình GPU)**; không yêu cầu thiết lập môi trường cục bộ (local environment).
 
-## 1. Tái lập gồm ba mức
+---
 
-### Mức A - kiểm tra toàn bộ pipeline trong vài phút
+## 1. Phân cấp thực nghiệm (Experimental Levels)
 
-Mục đích: kiểm tra dataset, GPU, model, forward/backward, train, validation và ghi CSV đều hoạt động.
+Quy trình tái lập được chia thành 03 mức độ kiểm thử:
+
+### Mức A: Kiểm thử toàn bộ pipeline (Sanity Check)
+* **Mục đích:** Kiểm tra tính toàn vẹn của luồng xử lý dữ liệu (data pipeline), trạng thái GPU, khởi tạo mô hình, quá trình lan truyền tiến/lùi (forward/backward pass), vòng lặp huấn luyện/đánh giá (train/val loop) và xuất dữ liệu CSV.
 
 ```python
 MEMBER = 1
@@ -14,45 +17,57 @@ DEBUG = True
 PART = "pilot_reproduce"
 RUN_IDS = []
 RUN_ALL_CONFIGS = False
+
 ```
 
-Chạy notebook từ trên xuống. Kết quả pilot chỉ để kiểm tra code, không đưa vào bảng báo cáo và không đọc test set.
+* **Yêu cầu thực thi:** Chạy toàn bộ notebook theo thứ tự từ trên xuống. Kết quả ở chế độ `pilot` chỉ phục vụ mục đích kiểm lỗi mã nguồn (debugging), không đọc tập kiểm thử (test set) và không được ghi nhận vào báo cáo chính thức.
 
-### Mức B - chạy lại một kết quả chính
+---
 
-Mục đích: tái lập một phép so sánh được dùng trong báo cáo. Ví dụ chạy lại anchor và AdamW:
+### Mức B: Tái lập một cấu hình đơn lẻ (Single Experiment Reproduce)
+
+* **Mục đích:** Tái lập một phép so sánh cụ thể được trích dẫn trong báo cáo (ví dụ: so sánh mô hình cơ sở Anchor và tối ưu hóa AdamW).
 
 ```python
 MEMBER = 1
 DEBUG = False
 PART = "reproduce_optimizer"
 RUN_IDS = ["anchor", "opt_adamw"]
+
 ```
 
-Mỗi cấu hình tự chạy seed 42 và 2026. Sau khi xong, cell tổng hợp tạo mean ± std từ bốn lượt chạy. Có thể thay `RUN_IDS` bằng ID của hình/bảng cần kiểm chứng.
+* **Yêu cầu thực thi:** Mỗi cấu hình sẽ tự động thực thi với 02 giá trị ngẫu nhiên (seed): `42` và `2026`. Sau khi hoàn tất, cell tổng hợp sẽ tính toán giá trị Trung bình ± Độ lệch chuẩn Mean ± Std từ 04 lượt chạy. Cấu hình `RUN_IDS` có thể thay đổi linh hoạt theo ID của biểu đồ hoặc bảng dữ liệu cần kiểm chứng.
 
-### Mức C - chạy lại toàn bộ ma trận
+---
+
+### Mức C: Tái lập toàn bộ không gian thực nghiệm (Full Grid Reproduce)
 
 ```python
 RUN_ALL_CONFIGS = True
+
 ```
 
-Chỉ cần `RUN_ALL_CONFIGS=True`; notebook tự đặt các giá trị còn lại cho full suite. Chế độ này gồm 26 cấu hình × 2 seed = 52 lượt và mỗi lượt tự đo test. Trên Kaggle T4, tổng thời gian gần như chắc vượt giới hạn 12 giờ của một Save & Run All; preset này phù hợp khi dùng GPU nhanh hơn hoặc môi trường không có giới hạn phiên. Muốn chia `RUN_IDS` trên T4, phải giữ `RUN_ALL_CONFIGS=False` rồi dùng chế độ member/part thông thường.
+* **Yêu cầu thực thi:** Khi gán `RUN_ALL_CONFIGS = True`, hệ thống sẽ tự động ghi đè các tham số thiết lập toàn bộ tập thực nghiệm 26 cấu hình x 2 seeds = 52 lượt chạy, kèm theo đo lường tự động trên tập test.
+* **Lưu ý về giới hạn hạ tầng:** Trên phần cứng Kaggle Tesla T4, tổng thời gian thực thi dự kiến sẽ vượt quá giới hạn 12 giờ của tính năng *Save & Run All*. Chế độ này chỉ áp dụng khi sử dụng phần cứng cao cấp hơn hoặc môi trường không giới hạn thời gian phiên làm việc (session duration limit). Để phân chia các khối thực nghiệm (`RUN_IDS`) trên môi trường T4, bắt buộc duy trì `RUN_ALL_CONFIGS = False` và phân tải qua cấu hình `MEMBER` / `PART`.
 
-## 2. Chuẩn bị một Kaggle Notebook sạch
+---
 
-1. Tải `notebooks/DeTai3_Kaggle.ipynb` từ đúng release/commit GitHub mà nhóm ghi trong báo cáo.
-2. Kaggle → **Create → New Notebook** → import file notebook.
-3. Settings → Accelerator → chọn **GPU T4 x2**.
-4. Add Input → thêm [CIFAR-10 Python](https://www.kaggle.com/datasets/pankrzysiu/cifar10-python), hoặc đúng dataset/version mà nhóm đã ghi trong báo cáo.
-5. Dataset trên chứa `cifar-10-python.tar.gz`; notebook tự giải nén và kiểm `cifar-10-batches-py/data_batch_1` trước khi train.
-6. Không cần chạy `pip install` vì các thư viện đã có trong Kaggle image. Nếu import báo thiếu thư viện, chỉ cài đúng package/phiên bản ghi trong `requirements.txt`.
+## 2. Khởi tạo môi trường thực thi sạch (Clean Environment Setup)
 
-Cell đầu sẽ dừng với thông báo rõ nếu không thấy GPU, nếu chọn P100, hoặc nếu input không có đúng một archive/thư mục CIFAR-10 Python.
+1. Tải tập tin `notebooks/DeTai3_Kaggle.ipynb` từ đúng `commit/release` được chỉ định trên GitHub repository của đề tài.
+2. Tại giao diện Kaggle: Chọn **Create** → **New Notebook** → **Import** tập tin notebook đã tải.
+3. Thiết lập **Settings** → **Accelerator** → **GPU T4 x2**.
+4. Chọn **Add Input** → Tích hợp tập dữ liệu [CIFAR-10 Python](https://www.kaggle.com/datasets/pankrzysiu/cifar10-python) (hoặc đúng phiên bản dữ liệu ghi trong báo cáo).
+5. Dữ liệu đầu vào chứa tập tin `cifar-10-python.tar.gz`. Notebook sẽ tự động giải nén và kiểm tra sự tồn tại của cấu trúc `cifar-10-batches-py/data_batch_1` trước khi huấn luyện.
+6. Hạn chế sử dụng lệnh `pip install` do các thư viện nền tảng đã được tích hợp sẵn trong Kaggle Docker Image. Trong trường hợp phát sinh lỗi thiếu thư viện, chỉ cài đặt đúng danh mục và phiên bản quy định tại `requirements.txt`.
 
-## 3. Các giá trị được phép sửa
+> **Mô tả phản hồi hệ thống:** Cell khởi tạo sẽ chủ động ngắt thực thi và xuất thông báo lỗi nếu: Không phát hiện GPU, phần cứng được chọn là GPU P100, hoặc cấu trúc dữ liệu đầu vào không khớp với định dạng CIFAR-10 Python tiêu chuẩn.
 
-Trong lần chạy thông thường, chỉ sửa các giá trị ở đầu notebook:
+---
+
+## 3. Danh mục Siêu tham số điều khiển (Execution Parameters)
+
+Trong các lượt chạy thực nghiệm thông thường, người sử dụng chỉ được phép hiệu chỉnh các biến khai báo tại phần khởi tạo notebook:
 
 ```python
 MEMBER = 1
@@ -62,142 +77,147 @@ RUN_IDS = []
 RUN_ALL_CONFIGS = False
 NOTEBOOK_VERSION = "v2"
 SAVE_CHECKPOINTS = False
+
 ```
 
-- `MEMBER`: chọn danh sách thí nghiệm của thành viên; `0` là tất cả.
-- `DEBUG`: `True` chạy nhanh trên tập nhỏ; `False` chạy chính thức 20 epoch và hai seed.
-- `PART`: tên phần để các phiên không ghi đè nhau.
-- `RUN_IDS`: danh sách cấu hình cần chạy; rỗng nghĩa là cả phần.
-- `RUN_ALL_CONFIGS`: `True` tự chạy toàn bộ 26 cấu hình × 2 seed; các nút member/debug/part/run IDs được preset tự ghi đè.
-- `NOTEBOOK_VERSION`: phiên bản code lõi mà cả nhóm thống nhất.
-- `SAVE_CHECKPOINTS`: thường để `False`; checkpoint tốt nhất được test ngay trong cùng run rồi giải phóng.
+* `MEMBER`: Chỉ định tập thực nghiệm phân công cho thành viên (0 tương ứng với toàn bộ các tập).
+* `DEBUG`: `True` áp dụng lấy mẫu nhỏ để kiểm thử nhanh; `False` thực thi chính thức với 20 epochs trên 2 seeds.
+* `PART`: Định danh phân đoạn thực nghiệm nhằm tránh ghi đè dữ liệu đầu ra giữa các phiên.
+* `RUN_IDS`: Danh sách mã cấu hình thực thi (để rỗng tương ứng với chạy toàn bộ danh mục trong `PART`).
+* `RUN_ALL_CONFIGS`: Flag kích hoạt chế độ tự động thực thi 26 cấu hình x 2 seeds (sẽ ghi đè các biến `MEMBER`, `DEBUG`, `PART`, `RUN_IDS`).
+* `NOTEBOOK_VERSION`: Phiên bản mã nguồn lõi đã được đồng bộ trong nhóm.
+* `SAVE_CHECKPOINTS`: Khuyến nghị thiết lập `False`. Trọng số tối ưu (best checkpoint) sẽ được đánh giá trực tiếp trên tập test trong cùng lượt chạy và tự động giải phóng bộ nhớ ngay sau đó.
 
-Không đổi `BASE_CONFIG`, split, model hoặc training loop giữa hai seed của cùng một cấu hình.
+*(Tuyệt đối không thay đổi `BASE_CONFIG`, phương pháp phân chia dữ liệu, kiến trúc mô hình hoặc vòng lặp huấn luyện giữa các lượt chạy seed khác nhau trong cùng một cấu hình).*
 
-## 4. Dữ liệu và seed
+---
 
-- CIFAR-10 chính thức có 50.000 ảnh train và 10.000 ảnh test.
-- Notebook dùng split seed 4653 để chia 45.000 train / 5.000 validation.
-- Hai training seed chính thức là 42 và 2026.
-- Train chỉ dùng augmentation khi chính cấu hình đó yêu cầu.
-- Validation luôn dùng transform sạch.
-- Validation chọn checkpoint có accuracy cao nhất trong các epoch đã chạy.
-- Sau khi train kết thúc, notebook nạp checkpoint đó và đo test đúng một lần; test không tham gia backward, early stopping hay chọn checkpoint.
-- Validation/test đều dùng transform sạch, `shuffle=False`; batch 8/32/128 chỉ là batch train, còn evaluation dùng batch 256 cố định.
+## 4. Chuẩn hóa Dữ liệu và Điểm khởi tạo Ngẫu nhiên (Data & Seeding Protocol)
 
-Đây là các điều kiện để một phép so sánh có kiểm soát: cùng dữ liệu, cùng model nền, cùng seed và cùng ngân sách; chỉ đổi yếu tố đang khảo sát.
+* **Tập dữ liệu:** CIFAR-10 chuẩn bao gồm 50,000 ảnh huấn luyện và 10,000 ảnh kiểm thử.
+* **Phân chia dữ liệu:** Dùng cố định `seed = 4653` để chia tập 50,000 ảnh thành: **45,000 ảnh Training** và **5,000 ảnh Validation**.
+* **Seed ngẫu nhiên:** Hai giá trị seed huấn luyện chính thức được cố định là `42` và `2026`.
+* **Tăng cường dữ liệu (Data Augmentation):** Chỉ áp dụng biến đổi dữ liệu trên tập train khi cấu hình thực nghiệm yêu cầu cụ thể.
+* **Tập Validation & Test:**
+* Luôn áp dụng phép biến đổi chuẩn hóa cố định (clean transform), không thực hiện tăng cường dữ liệu và thiết lập `shuffle = False`.
+* Checkpoint được chọn là phiên bản đạt **Độ chính xác cao nhất (Best Accuracy)** trên tập Validation trong suốt chu kỳ huấn luyện.
+* Sau khi hoàn tất quá trình huấn luyện, mô hình sẽ nạp lại checkpoint tối ưu để đánh giá trên tập Test **đúng 01 lần duy nhất**. Tập Test hoàn toàn không tham gia vào quá trình lan truyền ngược (backward pass), dừng sớm (early stopping) hay tuyển chọn checkpoint.
+* Kích thước lô (Batch size) cho quá trình đánh giá (Evaluation) được cố định là `256`, trong khi batch size huấn luyện có thể thay đổi tùy cấu hình (`8`, `32`, `128`).
 
-## 5. File đầu ra của mỗi lượt
 
-Notebook ghi sau từng run để giảm rủi ro mất log khi Kaggle ngắt phiên:
 
-```text
+> **Nguyên tắc kiểm soát biến số:** Đảm bảo tính minh bạch của phép so sánh bằng cách đồng bộ tập dữ liệu, mô hình nền, điểm khởi tạo ngẫu nhiên và tài nguyên tính toán; chỉ thay đổi duy nhất yếu tố kỹ thuật cần khảo sát.
+
+---
+
+## 5. Cấu trúc Nhật ký Đầu ra (Logging Structure)
+
+Để phòng ngừa mất mát dữ liệu do ngắt kết nối phiên làm việc trên Kaggle, hệ thống sẽ tự động xuất nhật ký sau mỗi lượt chạy vào đường dẫn:
+
 /kaggle/working/it4653/
 ├── summary_memberN_partX.csv
 ├── epoch_log_memberN_partX.csv
 ├── step_log_memberN_partX.csv
 ├── mean_std.csv
 └── figures/
-```
 
-### `summary_*.csv`
 
-Mỗi dòng là một lượt chạy `(experiment_id, seed)`, gồm cấu hình thực tế, best validation accuracy/epoch, test loss/accuracy, kết quả epoch cuối, thời gian train/test, GPU, phiên bản thư viện và notebook version. Đây là nhật ký chính theo yêu cầu PDF.
+* **`summary_*.csv`:** Lưu trữ kết quả của từng lượt chạy `(experiment_id, seed)`, bao gồm: Siêu tham số thực tế, Best Val Accuracy/Epoch, Test Loss/Accuracy, kết quả epoch cuối, thời gian huấn luyện/đánh giá, thông tin GPU, phiên bản thư viện và `NOTEBOOK_VERSION`. Dữ liệu này là cơ sở phục vụ đối soát.
+* **`epoch_log_*.csv`:** Ghi nhận thông số theo từng epoch (Loss/Accuracy của Train & Val, Learning Rate, Thời gian). Phục vụ vẽ đường cong hội tụ (Convergence Curves).
+* **`step_log_*.csv`:** Ghi nhận Loss và Learning Rate sau mỗi 20 bước tối ưu (optimizer steps). Phục vụ vẽ biểu đồ biến thiên theo bước huấn luyện.
+* **`mean_std.csv` & `figures/`:** Kết xuất tự động từ dữ liệu thô (raw logs), không qua xử lý thủ công. Đây là nguồn dữ liệu trực tiếp để trích xuất bảng biểu và đồ thị trong báo cáo.
 
-### `epoch_log_*.csv`
+---
 
-Mỗi dòng là một epoch, gồm train/validation loss, accuracy, learning rate và thời gian epoch. File này dùng cho đường cong theo epoch.
+## 6. Quy trình Thực nghiệm Song song (Parallel Execution Standard)
 
-### `step_log_*.csv`
+Tất cả thành viên nghiên cứu phải xuất phát từ cùng một mã nguồn `NOTEBOOK_VERSION`.
 
-Ghi loss và learning rate mỗi 20 optimizer steps. File này dùng cho biểu đồ schedule theo bước mà đề tài 3 yêu cầu.
+| Thành viên | Biến `MEMBER` | Phân công nhóm thực nghiệm |
+| --- | --- | --- |
+| **Thành viên 1** | `1` | Baseline Anchor, Optimizer, Normalization |
+| **Thành viên 2** | `2` | Learning-Rate Scheduling |
+| **Thành viên 3** | `3` | Regularization |
 
-### `mean_std.csv` và `figures/`
+**Trình tự thực thi cho từng thành viên:**
 
-Được sinh từ các file raw, không sửa tay. Đây là nguồn trực tiếp để làm bảng và hình trong báo cáo.
+1. Thực thi kiểm thử ở chế độ `DEBUG = True`.
+2. Chuyển sang chế độ chính thức `DEBUG = False`.
+3. Phân chia `RUN_IDS` thành các `PART` nhỏ (nếu cần thiết để tối ưu thời gian phiên).
+4. Thực hiện **Save Version** sau khi hoàn thành mỗi `PART`.
+5. Tải tập tin CSV hoặc đóng gói thành Kaggle Private Dataset.
+6. Chuyển giao các tập tin CSV thô cho thành viên tổng hợp.
 
-## 6. Chạy song song bằng ba tài khoản
+> **Quy định về đóng góp mã nguồn:** Không tự ý hiệu chỉnh vòng lặp huấn luyện trên các bản sao cá nhân. Trường hợp phát sinh lỗi trong mã nguồn lõi, phải thực hiện cập nhật tập trung, nâng cấp chỉ số `NOTEBOOK_VERSION` và đánh giá lại tính hiệu lực của các lượt chạy trước đó.
 
-Tất cả thành viên phải bắt đầu từ cùng một `NOTEBOOK_VERSION`.
+---
 
-| Thành viên | `MEMBER` | Phần chạy |
-|---|---:|---|
-| 1 | 1 | anchor, optimizer, normalization |
-| 2 | 2 | learning-rate schedule |
-| 3 | 3 | regularization |
+## 7. Tổng hợp Dữ liệu và Tái tạo Đồ thị (Data Aggregation & Artifact Generation)
 
-Mỗi người:
+1. Khởi tạo một Kaggle Notebook tổng hợp từ bản mã nguồn chuẩn.
+2. Chọn **Add Input** toàn bộ các tập tin CSV chính thức thu thập từ các thành viên (Không tích hợp các log ở chế độ `DEBUG/Pilot`).
+3. Thiết lập `DEBUG = False` và `NOTEBOOK_VERSION` tương thích với dữ liệu log chính thức, sau đó chạy cell khởi tạo.
+4. Thực thi cell: *"Ghép CSV và vẽ tối thiểu 6 biểu đồ"*.
+5. Kiểm tra trường dữ liệu `seeds` trong `mean_std.csv`, đảm bảo đạt đủ 2 lượt chạy cho tất cả cấu hình.
+6. Tải về tập tin `mean_std.csv` và thư mục `figures/`.
+7. Lưu trữ cấu trúc thư mục dự án:
+* Tập tin log thô → `results/raw/`
+* Bảng tổng hợp → `results/mean_std.csv`
+* Đồ thị → `results/figures/`
 
-1. chạy `DEBUG=True` một lần;
-2. chuyển `DEBUG=False`;
-3. chia `RUN_IDS` thành các part nếu cần;
-4. Save Version sau mỗi part;
-5. tải ba CSV về hoặc tạo private Kaggle Dataset từ output;
-6. gửi CSV cho người tổng hợp.
 
-Không gửi notebook đã sửa training loop riêng lẻ rồi tiếp tục chạy. Nếu phát hiện lỗi lõi, dừng, sửa bản chuẩn, tăng version và quyết định rõ các run cũ có phải chạy lại hay không.
 
-## 7. Ghép log và tạo lại bảng/hình
+**Danh mục 06 đồ thị tiêu chuẩn:**
 
-1. Tạo một Kaggle Notebook tổng hợp từ notebook chuẩn.
-2. Add Input toàn bộ CSV chính thức. Không Add Input pilot.
-3. Đặt `DEBUG=False` và `NOTEBOOK_VERSION` đúng với official logs, rồi chạy cell import.
-4. Chạy cell “Ghép CSV và vẽ tối thiểu 6 biểu đồ”.
-5. Kiểm cột `seeds` trong `mean_std.csv` bằng 2 cho mọi cấu hình.
-6. Download `mean_std.csv` và thư mục `figures`.
-7. Đưa raw CSV vào `results/raw/`, bảng vào `results/mean_std.csv` và hình vào `results/figures/`.
+1. Loss huấn luyện/kiểm định theo Epoch của các thuật toán Optimizer.
+2. Độ chính xác trên tập Test Mean ± Std của các thuật toán Optimizer.
+3. Loss huấn luyện theo Global Step của các chiến lược Learning-Rate Schedule.
+4. Độ chính xác trên tập Test Mean ± Std của Learning-Rate Schedule.
+5. Tương quan giữa Normalization x Batch Size đến Độ chính xác tập Test.
+6. Độ chính xác trên tập Test Mean ± Std của các phương pháp Regularization.
 
-Sáu hình mặc định:
+*(Mọi thay đổi về số liệu trong báo cáo phải được tái tạo trực tiếp qua mã nguồn xử lý log, không hiệu chỉnh thủ công trên tập tin kết quả).*
 
-1. optimizer train/validation loss theo epoch;
-2. optimizer test accuracy mean ± std;
-3. schedule train loss theo global step;
-4. schedule test accuracy mean ± std;
-5. normalization × batch size theo test accuracy;
-6. regularization test accuracy mean ± std.
+---
 
-Nếu một số liệu trong report được cập nhật, hãy sinh lại bảng/hình từ log thay vì sửa trực tiếp file kết quả.
+## 8. Chuẩn đánh giá Test-All (Test-All Evaluation Protocol)
 
-## 8. Protocol test-all
+Trước khi thực thi chính thức, toàn bộ 26 cấu hình, 02 giá trị seed, tốc độ học (LR) và mã nguồn `v2` phải được đóng băng (freeze) trên GitHub Repository. Đối với mỗi cặp `(experiment_id, seed)`, quy trình đánh giá tuân thủ chuỗi xử lý nghiêm ngặt:
 
-Trước official run, nhóm phải khóa 26 cấu hình, hai seed, LR và notebook `v2` trong GitHub. Với mỗi `(experiment_id, seed)`, notebook làm đúng một chuỗi:
+Train 45k → Val 5k [Chọn Best Epoch] → Load Best Checkpoint → Test 10k [Đánh giá 1 lần]
 
-```text
-train 45k → validation 5k chọn best epoch → nạp best state → test 10k đúng một lần
-```
+* **Tối ưu hóa checkpoint:** Tiêu chí chọn trọng số dựa trên Validation Accuracy lớn nhất. Trường hợp có nhiều epoch đạt giá trị bằng nhau, ưu tiên epoch xuất hiện trước.
+* **Đánh giá tập Test:** Bắt buộc áp dụng `model.eval()` và `torch.no_grad()`, không tăng cường dữ liệu, không xáo trộn dữ liệu (`shuffle = False`), kích thước lô đánh giá cố định 256. Nghiêm cấm hành vi đánh giá thêm trọng số ở epoch cuối để chọn lọc kết quả tối ưu hơn.
+* **Mục đích của Test-All:** Nhằm đánh giá khả năng tổng quát hóa (generalization) **trong nội bộ từng nhóm khảo sát** so với mô hình cơ sở Anchor. Không sử dụng kết quả này để xếp hạng toàn bộ 26 cấu hình như một cuộc thi công khai, do mỗi nhóm thực nghiệm hướng đến giải quyết các câu hỏi khoa học khác nhau. Nếu xuất hiện sự lệch hướng giữa tập Validation và tập Test, phải ghi nhận cả hai chỉ số và đưa vào phần thảo luận, không thực hiện thay đổi siêu tham số để chạy lại có chọn lọc.
+* **Xử lý dữ liệu cũ:** Các dữ liệu log thuộc phiên bản `v1` không chứa thông tin đánh giá tập Test và trọng số tối ưu. Do đó, không gộp dữ liệu `v1` vào bảng báo cáo chính thức `v2`.
 
-Quy tắc checkpoint là maximum validation accuracy; nếu hai epoch bằng nhau, điều kiện `>` giữ epoch xuất hiện sớm hơn. Test dùng `model.eval()` và `torch.no_grad()`, không augmentation, không shuffle, batch eval 256 cố định. Không test thêm weights ở epoch cuối rồi chọn kết quả đẹp hơn.
+---
 
-Test-all được dùng để kiểm chứng mức tổng quát hóa **trong từng nhánh** so với anchor. Không xếp hạng toàn bộ 26 cấu hình như một cuộc thi vì mỗi nhánh thay đổi một câu hỏi khác nhau. Nếu test và validation cho xu hướng khác nhau, báo cả hai và thảo luận; không đổi LR/config rồi chạy lại có chọn lọc.
+## 9. Đóng băng Phiên bản Môi trường (Environment Freezing)
 
-`RUN_ALL_CONFIGS=True` cung cấp đúng một preset chạy toàn bộ. Tuy nhiên [Kaggle yêu cầu Save & Run All hoàn tất trong 12 giờ](https://www.kaggle.com/docs/notebooks). Với tốc độ khoảng 15 phút/run batch 128 đã quan sát, riêng 40 run batch 128 đã gần 10 giờ; còn 12 run batch 8/32. Vì vậy trên T4 nên giữ `RUN_ALL_CONFIGS=False` và chia part hoặc ba tài khoản. Chỉ dùng preset một lần nếu GPU/môi trường đủ nhanh để hoàn tất dưới giới hạn phiên.
+Khi thực thi phiên chính thức, cell đầu tiên sẽ xuất thông số hệ thống của Python, PyTorch, Torchvision và GPU. Trích xuất chính xác các phiên bản này để cập nhật vào `requirements.txt`:
 
-Các CSV `v1` cũ vẫn hữu ích để phân tích thử train/validation nhưng không có weights hoặc test metrics. Không trộn chúng vào bảng official `v2`; nếu chọn protocol test-all, chạy lại các ID đó bằng `v2`.
+torch==<phien_ban_truc_xuat>
+torchvision==<phien_ban_truc_xuat>
+numpy==<phien_ban_truc_xuat>
+pandas==<phien_ban_truc_xuat>
+matplotlib==<phien_ban_truc_xuat>
 
-## 9. Khóa phiên bản trước khi nộp
 
-Trong lần chạy chính thức, cell đầu in Python, PyTorch, torchvision và GPU. Sao chép đúng phiên bản package vào `requirements.txt`, ví dụ:
+*(Thay thế `<phien_ban_truc_xuat>` bằng thông số thực tế từ phiên làm việc trên Kaggle. Đồng thời ghi nhận `NOTEBOOK_VERSION`, Git Commit SHA và phiên bản Kaggle Dataset trong báo cáo hoặc tài liệu README).*
 
-```text
-torch==<phien-ban-da-in>
-torchvision==<phien-ban-da-in>
-numpy==<phien-ban-da-in>
-pandas==<phien-ban-da-in>
-matplotlib==<phien-ban-da-in>
-```
+---
 
-Dấu `<...>` chỉ là minh họa; không nộp placeholder. Hãy dùng phiên bản thật của Kaggle session tạo ra kết quả chính. Ghi thêm `NOTEBOOK_VERSION`, link/commit GitHub và version Kaggle Dataset trong báo cáo hoặc README.
+## 10. Quy trình Kiểm thử Tái lập độc lập (Independent Peer Audit)
 
-## 10. Kiểm tra như người chấm
+Một thành viên không tham gia trực tiếp vào quá trình viết mã nguồn notebook sẽ thực hiện quy trình kiểm thử độc lập trước thời hạn nộp báo cáo:
 
-Một thành viên không viết notebook nên làm thử trước hạn nộp:
+1. Truy cập liên kết GitHub Repository từ một thiết bị hoặc phiên làm việc độc lập.
+2. Tải bản sao mã nguồn notebook mới nhất.
+3. Import tập tin vào môi trường Kaggle, kích hoạt cấu hình GPU và liên kết dữ liệu đầu vào (Add Input).
+4. Thực thi toàn bộ **Mức A (Sanity Check)** từ đầu đến cuối.
+5. Xác nhận tính đầy đủ của 03 tập tin nhật ký CSV đầu ra.
+6. Trích xuất ngẫu nhiên một tập tin CSV để đối soát các thông số `seed`, `config` và `metrics`.
+7. Liên kết dữ liệu log thô chính thức và thực thi quy trình tái tạo bảng `mean_std.csv` cùng 06 đồ thị tiêu chuẩn.
 
-1. mở link GitHub ở cửa sổ/thiết bị khác;
-2. tải notebook mới hoàn toàn;
-3. import vào Kaggle, bật GPU và Add Input;
-4. chạy Mức A từ đầu tới cuối;
-5. kiểm ba CSV xuất hiện;
-6. mở một CSV và đối chiếu seed/config/kết quả;
-7. Add Input raw logs chính thức và tạo lại `mean_std.csv` cùng sáu hình.
-
-Nếu quy trình này thành công mà không cần hỏi người viết code, phần README/notebook đã đạt mục tiêu “chạy lại được”.
+Nếu quy trình trên được thực hiện thành công và không phát sinh bất kỳ sự cố kỹ thuật nào, mã nguồn và tài liệu hướng dẫn được xác nhận **Đạt tiêu chuẩn tái lập nghiên cứu (Reproducible Standard)**.
